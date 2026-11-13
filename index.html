@@ -86,6 +86,17 @@ button.icon svg{width:19px;height:19px;display:block}
 button.icon.off{opacity:.5}
 button.icon .slash{display:none} button.icon.off .slash{display:inline}
 button.icon .moon{display:none} body.night button.icon .moon{display:inline} body.night button.icon .sun{display:none}
+#pauseOv{position:fixed;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;background:rgba(240,243,247,.38);backdrop-filter:blur(7px) saturate(1.05);-webkit-backdrop-filter:blur(7px) saturate(1.05);opacity:0;pointer-events:none;transition:opacity .45s ease}
+#pauseOv.show{opacity:1;pointer-events:auto}
+#pauseOv .box{text-align:center;padding:26px 34px 24px;border-radius:24px;transform:translateY(6px) scale(.98);transition:transform .45s ease}
+#pauseOv.show .box{transform:none}
+#pauseOv h2{margin:0 0 4px;font-size:30px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+#pauseOv p{margin:0 0 18px;font-size:13.5px;color:rgba(31,37,48,.6)}
+#btnResume{font:inherit;font-size:17px;font-weight:650;border:0;border-radius:999px;padding:13px 34px;background:var(--accent,#2a9d8f);color:#fff;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.14);display:inline-flex;align-items:center;gap:9px}
+#btnResume:hover{filter:brightness(1.06)} #btnResume svg{width:18px;height:18px}
+body.night #pauseOv{background:rgba(14,19,38,.42)} body.night #pauseOv p{color:rgba(232,236,246,.66)}
+body.paused #hint{opacity:0;transition:opacity .3s} body.paused #card .cbtn{opacity:.45;pointer-events:none;filter:saturate(.4)}
+button.icon .play{display:none} body.paused #btnPause .play{display:inline} body.paused #btnPause .bars{display:none}
 #startNight{position:fixed;top:14px;right:14px;z-index:12}
 #toast{top:auto;bottom:84px}
 body,#fade{transition:background-color .8s ease,color .8s ease}
@@ -124,6 +135,7 @@ body.night #fade{background:#121831}
     <div class="tot">Total<b id="sTot">0</b></div>
   </div>
   <div class="btns">
+    <button id="btnPause" class="glass soft icon" title="Pause (Space or P)" aria-label="Pause or resume"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><g class="bars"><rect x="6.5" y="5" width="3.6" height="14" rx="1.2"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.2"/></g><path class="play" d="M8 5.2v13.6a1 1 0 0 0 1.5.86l10.6-6.8a1 1 0 0 0 0-1.72L9.5 4.34A1 1 0 0 0 8 5.2z"/></svg></button>
     <button id="btnSound" class="glass soft icon" title="Sound on/off" aria-label="Sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" fill="currentColor" stroke="none"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="slash" d="M3 3l18 18"/></svg></button>
     <button id="btnVoice" class="glass soft icon" title="Tower voice on/off" aria-label="Tower voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 16h-8l-4.5 3.5V16H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z"/><path d="M8 9.5h8M8 12.5h5"/><path class="slash" d="M3 3l18 18"/></svg></button>
     <button id="btnNight" class="glass soft icon" title="Day / night" aria-label="Day or night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g><path class="moon" d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
@@ -136,6 +148,7 @@ body.night #fade{background:#121831}
 <div id="toast" class="glass pill"></div>
 <div id="caption" class="glass pill"><span class="twr">TOWER</span><span id="capText"></span></div>
 <div id="card" class="glass" aria-live="polite"></div>
+<div id="pauseOv" aria-hidden="true"><div class="box glass"><h2>Paused</h2><p>The tower is taking a breather. Everything will wait right where it is.</p><button id="btnResume"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l10.6-6.8a1 1 0 0 0 0-1.72L9.5 4.34A1 1 0 0 0 8 5.2z"/></svg>Resume</button></div></div>
 <div id="log" class="glass fadeable hidden"><h4>TOWER TRANSCRIPT</h4><div class="empty">Tower calls will appear here.</div></div>
 <button id="startNight" class="glass soft icon" title="Day / night" aria-label="Day or night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g><path class="moon" d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
 
@@ -466,6 +479,7 @@ const S={night:store.get('calmSkies.night',false),sound:store.get('calmSkies.sou
 let nightT=S.night?1:0;
 
 /* ---------- gentle synthesized sound (Web Audio) ---------- */
+let PAUSED=false;
 const Snd={ctx:null,master:null,humG:null,
   init(){
     if(this.ctx){if(this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});return;}
@@ -481,7 +495,10 @@ const Snd={ctx:null,master:null,humG:null,
     }catch(e){this.ctx=null;}
   },
   ok(){return this.ctx&&S.sound&&G&&!G.attract;},
-  setOn(on){if(this.ctx)this.master.gain.setTargetAtTime(on?0.55:0,this.ctx.currentTime,0.35);},
+  setOn(on){if(!this.ctx)return;on=on&&!PAUSED;try{if(on&&this.ctx.state==='suspended'&&!this.sus)this.ctx.resume();this.master.gain.setTargetAtTime(on?0.55:0,this.ctx.currentTime,0.35);}catch(e){}},
+  pause(p){if(!this.ctx)return;try{clearTimeout(this.susT);
+      if(p){this.master.gain.setTargetAtTime(0,this.ctx.currentTime,0.12);this.sus=true;this.susT=setTimeout(()=>{if(PAUSED)this.ctx.suspend().catch(()=>{});},600);}
+      else{this.sus=false;this.ctx.resume().catch(()=>{});this.master.gain.setTargetAtTime(S.sound?0.55:0,this.ctx.currentTime,0.4);}}catch(e){}},
   hum(level){if(!this.ctx||!this.humG)return;this.humG.gain.setTargetAtTime(level*0.045,this.ctx.currentTime,0.9);},
   whoosh(up){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime,dur=up?4.2:3.4;
     const src=c.createBufferSource();src.buffer=this.noise;src.loop=true;const bp=c.createBiquadFilter();bp.type='bandpass';bp.Q.value=0.8;
@@ -508,19 +525,24 @@ function pickVoice(){if(!speechOK)return;try{const vs=speechSynthesis.getVoices(
 if(speechOK){try{pickVoice();speechSynthesis.addEventListener('voiceschanged',pickVoice);}catch(e){}}
 const Radio={q:[],cur:null,log:[],hideT:0,
   say(text,spoken){if(!G||G.attract)return;this.q.push({text,spoken,t:performance.now()});this.pump();},
-  pump(){if(this.cur)return;
+  pause(){const m=this.cur;if(m){clearTimeout(m.timer);m.halted=true;this.cur=null;m.t=performance.now();this.q.unshift(m);} // replay the interrupted call on resume
+    if(speechOK){try{speechSynthesis.cancel();}catch(e){}}clearTimeout(this.hideT);},
+  resume(){const now=performance.now();this.q.forEach(m=>m.t=now);
+    if(this.q.length>3){this.q.slice(0,this.q.length-3).forEach(m=>this.addLog(m));this.q=this.q.slice(-3);} // only the latest few are spoken
+    setTimeout(()=>this.pump(),350);},
+  pump(){if(this.cur||PAUSED)return;
     while(this.q.length){const m=this.q.shift();
       if(this.q.length&&performance.now()-m.t>9000){this.addLog(m);continue;} // stale: shown in transcript, not spoken
       this.play(m);return;}
     clearTimeout(this.hideT);this.hideT=setTimeout(()=>$('caption').classList.remove('show'),1400);},
-  play(m){this.cur=m;this.addLog(m);clearTimeout(this.hideT);$('capText').textContent=m.text;$('caption').classList.add('show');
-    let done=false;const fin=()=>{if(done)return;done=true;clearTimeout(m.timer);setTimeout(()=>{if(this.cur===m){this.cur=null;this.pump();}},500);};
+  play(m){this.cur=m;m.halted=false;if(!m.logged)this.addLog(m);clearTimeout(this.hideT);$('capText').textContent=m.text;$('caption').classList.add('show');
+    let done=false;const fin=()=>{if(done||m.halted)return;done=true;clearTimeout(m.timer);setTimeout(()=>{if(this.cur===m){this.cur=null;this.pump();}},500);};
     const readMs=1700+m.text.length*48;
     if(S.voice&&speechOK){m.timer=setTimeout(fin,readMs+7000);
       try{const u=new SpeechSynthesisUtterance(m.spoken);u.rate=0.9;u.pitch=0.97;u.volume=0.85;u.lang='en-GB';if(towerVoice)u.voice=towerVoice;
         u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);}catch(e){clearTimeout(m.timer);m.timer=setTimeout(fin,readMs);}}
     else m.timer=setTimeout(fin,readMs);},
-  addLog(m){this.log.push(m.text);if(this.log.length>40)this.log.shift();
+  addLog(m){if(m.logged)return;m.logged=true;this.log.push(m.text);if(this.log.length>40)this.log.shift();
     const el=$('log');el.querySelectorAll('.row,.empty').forEach(r=>r.remove());
     for(const t of this.log.slice(-4)){const r=document.createElement('div');r.className='row';r.textContent=t;el.appendChild(r);}},
   reset(){this.q=[];if(this.cur)clearTimeout(this.cur.timer);this.cur=null;this.log=[];if(speechOK){try{speechSynthesis.cancel();}catch(e){}}
@@ -838,7 +860,7 @@ function updateCard(force){
     <div class="cb">${m.btns.map(b=>`<button class="cbtn${b.dis?' dis':''}" data-act="${b.act}" data-arg="${b.arg==null?'':b.arg}" ${b.dis?'aria-disabled="true"':''}>${esc(b.label)}${b.dis?`<small>${esc(b.dis)}</small>`:''}</button>`).join('')}</div>`;
   el.classList.add('show');document.body.classList.add('hasCard');
 }
-document.getElementById('card').addEventListener('click',e=>{
+document.getElementById('card').addEventListener('click',e=>{if(PAUSED){toast('Paused. Press Resume to give clearances');return;}
   const b=e.target.closest('button');if(!b||!G||!G.sel)return;const a=b.dataset.act;
   if(a==='close'){G.sel=null;G.preview=null;setHint();updateCard();return;}
   if(b.classList.contains('dis')){toast(b.querySelector('small')?b.querySelector('small').textContent:'Not available just now');return;}
@@ -862,7 +884,7 @@ function execTarget(p,t){
   if(p.state==='holdShort')return doAct(p,'lineup');
   return false;}
 function onTap(sx,sy){
-  if(!G||G.attract)return;
+  if(!G||G.attract||PAUSED)return;
   const w=view.toWorld(sx,sy),plane=hitPlane(w),t=hitTarget(w);
   if(plane&&plane===G.sel){updateCard(true);return;}
   if(G.sel&&t&&isValid(G.sel,t)){execTarget(G.sel,t);updateCard(true);return;}
@@ -911,9 +933,20 @@ $('btnNight').addEventListener('click',toggleNight);$('startNight').addEventList
 $('btnSound').addEventListener('click',()=>{S.sound=!S.sound;store.set('calmSkies.sound',S.sound);Snd.init();Snd.setOn(S.sound);syncToggles();toast(S.sound?'Sound on — soft and quiet':'Sound off');});
 $('btnVoice').addEventListener('click',()=>{S.voice=!S.voice;store.set('calmSkies.voice',S.voice);if(!S.voice)Radio.voiceOff();syncToggles();toast(S.voice?'Tower voice on':'Tower voice off — captions stay on');});
 function fade(fn){const f=$('fade');f.style.opacity=1;setTimeout(()=>{fn();requestAnimationFrame(()=>{f.style.opacity=0;});},460);}
-function startAirport(def){fade(()=>{newGame(def,false);$('start').classList.add('hidden');showHUD(true);});}
-$('btnRestart').addEventListener('click',()=>fade(()=>{newGame(G.def,false);toast('A fresh, calm start at '+G.def.name);}));
-$('btnMenu').addEventListener('click',()=>fade(()=>{showHUD(false);$('start').classList.remove('hidden');newGame(G.def,true);}));
+function gameActive(){return G&&!G.attract&&$('start').classList.contains('hidden');}
+function setPaused(on,why){on=!!on;if(on&&!gameActive())on=false;if(on===PAUSED)return;PAUSED=on;
+  document.body.classList.toggle('paused',on);$('pauseOv').classList.toggle('show',on);$('pauseOv').setAttribute('aria-hidden',on?'false':'true');
+  $('btnPause').title=on?'Resume (Space or P)':'Pause (Space or P)';
+  Snd.pause(on);if(on)Radio.pause();else Radio.resume();
+  if(on&&why)toast(why);}
+$('btnPause').addEventListener('click',()=>setPaused(!PAUSED));
+$('btnResume').addEventListener('click',()=>setPaused(false));
+window.addEventListener('keydown',e=>{if(e.repeat||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
+  if(k===' '||k==='p'||k==='P'){if(!gameActive())return;const tg=e.target;e.preventDefault();if(tg&&tg.blur)tg.blur();setPaused(!PAUSED);}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameActive())setPaused(true,'Paused while you were away');});
+function startAirport(def){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();fade(()=>{setPaused(false);newGame(def,false);$('start').classList.add('hidden');showHUD(true);});}
+$('btnRestart').addEventListener('click',()=>fade(()=>{setPaused(false);newGame(G.def,false);toast('A fresh, calm start at '+G.def.name);}));
+$('btnMenu').addEventListener('click',()=>fade(()=>{setPaused(false);showHUD(false);$('start').classList.remove('hidden');newGame(G.def,true);}));
 
 /* ---------- render ---------- */
 function drawDotted(pts,col,alpha,width){if(!pts||pts.length<2)return;ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=col;ctx.lineWidth=width;ctx.lineCap='round';ctx.setLineDash([0.1,9]);ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(const q of pts)ctx.lineTo(q.x,q.y);ctx.stroke();ctx.restore();}
@@ -966,11 +999,11 @@ function render(now){
   for(const f of G.floaters){const q=view.toScreen(f.x,f.y);const a=f.t<0.3?f.t/0.3:1-clamp((f.t-1.4)/1,0,1);ctx.globalAlpha=a;ctx.font=`700 ${14*dpr}px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillText(f.text,q.x*dpr+1*dpr,(q.y-20-f.t*22)*dpr+1*dpr);ctx.fillStyle=th.accent;ctx.fillText(f.text,q.x*dpr,(q.y-20-f.t*22)*dpr);ctx.globalAlpha=1;}
 }
-let last=performance.now();
+let last=performance.now(),vnow=last;
 function frame(now){
-  const rdt=Math.min(0.05,(now-last)/1000);let dt=rdt*speedMul;last=now;
+  const rdt=Math.min(0.05,(now-last)/1000);let dt=PAUSED?0:rdt*speedMul;last=now;if(!PAUSED)vnow+=rdt*1000;
   nightT+=clamp((S.night?1:0)-nightT,-rdt/1.1,rdt/1.1);
-  if(G){while(dt>0){const h=Math.min(dt,0.05);update(h);dt-=h;}updateHover();if(now-cardT>200){cardT=now;updateCard();}render(now);}
+  if(G){while(dt>0){const h=Math.min(dt,0.05);update(h);dt-=h;}updateHover();if(now-cardT>200){cardT=now;updateCard();}render(vnow);}
   requestAnimationFrame(frame);
 }
 
@@ -989,7 +1022,7 @@ function buildCards(){
     const c=document.createElement('canvas');c.width=640;c.height=400;thumbs.push({c,def});
     card.appendChild(c);
     card.insertAdjacentHTML('beforeend',`<h3>${def.name}</h3><div class="tag">${def.tag}</div><p>${def.desc}</p><div class="sw">${[def.theme.accent,def.theme.accent2,def.theme.ground,def.theme.roof,def.theme.water].map(x=>`<i style="background:${x}"></i>`).join('')}</div>`);
-    const go=()=>startAirport(def);card.addEventListener('click',go);card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')go();});
+    const go=()=>startAirport(def);card.addEventListener('click',go);card.addEventListener('keydown',e=>{if($('start').classList.contains('hidden'))return;if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();go();}});
     wrap.appendChild(card);
   });
 }
@@ -1015,6 +1048,7 @@ window.calmSkies={
   radioLog(){return Radio.log.slice();},
   radioAll(){return Radio.log.concat(Radio.q.map(m=>m.text));},
   setNight(on){if(!!on!==S.night)toggleNight();nightT=on?1:0;},
+  pause(on){setPaused(on);return PAUSED;},isPaused(){return PAUSED;},
   audioState(){return{ctx:!!Snd.ctx,state:Snd.ctx&&Snd.ctx.state,speech:speechOK};}
 };
 })();
