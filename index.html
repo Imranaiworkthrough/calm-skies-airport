@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calm Skies — Airport Manager</title>
+<meta name="description" content="Calm Skies — a relaxing, airport manager demo game. Fictional demo. Not affiliated with any airline or airport. Demo game — made for an AI Workthrough video.">
+<style>
+:root{--accent:#26a69a;--ink:#1f2530;--glass:rgba(255,255,255,.66)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#eef1f4;color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.glass{background:var(--glass);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.75);box-shadow:0 10px 30px rgba(30,40,60,.10),0 1px 2px rgba(30,40,60,.06)}
+.pill{border-radius:999px;padding:9px 16px;font-size:14px;line-height:1.2}
+.fadeable{transition:opacity .5s ease}
+.hidden{opacity:0!important;pointer-events:none!important}
+#hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;z-index:5}
+#hud>*{pointer-events:auto}
+#apName{display:flex;align-items:center;gap:8px;font-weight:650;white-space:nowrap}
+#apName .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 20%,transparent)}
+#apName small{font-weight:500;opacity:.55}
+#score{display:flex;gap:12px;align-items:center;white-space:nowrap}
+#score div{font-size:12.5px;color:rgba(31,37,48,.62)}
+#score b{display:inline-block;font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums;margin-left:6px;transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+#score b.bump{transform:scale(1.35)}
+#score .tot b{color:var(--accent)}
+#score .sep{width:1px;height:16px;background:rgba(0,0,0,.1)}
+.btns{display:flex;gap:8px}
+button.soft{appearance:none;border:1px solid rgba(255,255,255,.75);cursor:pointer;font:inherit;font-size:14px;font-weight:600;color:var(--ink);
+  border-radius:999px;padding:9px 16px;transition:transform .25s ease,background .25s ease;white-space:nowrap}
+button.soft:hover{transform:translateY(-1px);background:rgba(255,255,255,.85)}
+button.soft:active{transform:scale(.97)}
+#hint{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);z-index:5;white-space:nowrap;font-weight:500;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis}
+#hint .k{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:1px}
+#footer{position:fixed;left:0;right:0;bottom:9px;text-align:center;font-size:11.5px;color:rgba(31,37,48,.6);z-index:5;pointer-events:none}
+#toast{position:fixed;left:50%;top:66px;transform:translate(-50%,-8px);opacity:0;transition:opacity .35s ease,transform .35s ease;z-index:6;pointer-events:none;
+  white-space:nowrap;font-weight:500;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#fade{position:fixed;inset:0;background:#f5f6f8;opacity:0;pointer-events:none;transition:opacity .45s ease;z-index:30}
+#start{position:fixed;inset:0;z-index:10;overflow:auto;background:linear-gradient(160deg,rgba(248,249,251,.80),rgba(236,241,246,.72));
+  backdrop-filter:blur(26px) saturate(1.3);-webkit-backdrop-filter:blur(26px) saturate(1.3);transition:opacity .5s ease;touch-action:pan-y}
+.startInner{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 20px 28px;max-width:1180px;margin:0 auto}
+.logo{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(145deg,#ffffff,#e9eef4);box-shadow:0 8px 24px rgba(30,40,60,.12)}
+h1{font-size:40px;letter-spacing:-.02em;margin:14px 0 4px;font-weight:700}
+.sub{margin:0 0 26px;font-size:16px;color:rgba(31,37,48,.62);text-align:center}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;width:100%}
+.card{border-radius:22px;padding:10px;cursor:pointer;text-align:left;transition:transform .3s ease,box-shadow .3s ease;outline:none}
+.card:hover,.card:focus-visible{transform:translateY(-5px);box-shadow:0 18px 40px rgba(30,40,60,.16)}
+.card canvas{width:100%;aspect-ratio:16/10;border-radius:14px;display:block;background:#eee}
+.card h3{margin:12px 6px 2px;font-size:17px;font-weight:650}
+.card .tag{margin:0 6px 4px;font-size:12.5px;font-weight:600;color:var(--c)}
+.card p{margin:0 6px 10px;font-size:13px;color:rgba(31,37,48,.6);line-height:1.4}
+.sw{display:flex;gap:6px;margin:0 6px 4px}
+.sw i{width:14px;height:14px;border-radius:50%;display:block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.how{margin-top:24px;border-radius:18px;padding:12px 20px;display:flex;gap:22px;flex-wrap:wrap;justify-content:center;font-size:13.5px;color:rgba(31,37,48,.75)}
+.how span b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#1f2530;color:#fff;font-size:11px;margin-right:7px}
+.note{margin:18px 0 0;font-size:12.5px;color:rgba(31,37,48,.55);text-align:center}
+#caption{position:fixed;left:50%;top:64px;transform:translate(-50%,-6px);opacity:0;transition:opacity .45s ease,transform .45s ease;z-index:6;pointer-events:none;
+  max-width:min(760px,calc(100vw - 24px));display:flex;gap:10px;align-items:center;font-weight:560;border-radius:18px}
+#caption.show{opacity:1;transform:translate(-50%,0)}
+.twr{font-size:10px;font-weight:750;letter-spacing:.08em;color:#fff;background:var(--accent);border-radius:6px;padding:3px 6px;flex:none}
+#card{position:fixed;right:12px;bottom:34px;width:320px;max-width:calc(100vw - 24px);border-radius:18px;padding:12px 14px;z-index:7;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .3s ease,transform .3s ease}
+#card.show{opacity:1;transform:none;pointer-events:auto}
+#card .ch{display:flex;align-items:center;gap:8px;font-size:13px}
+#card .ch i{width:10px;height:10px;border-radius:50%;flex:none}
+#card .ch span{color:rgba(31,37,48,.55);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#card .x{margin-left:auto;border:0;background:transparent;font-size:18px;line-height:1;color:inherit;opacity:.5;cursor:pointer;padding:2px 4px}
+#card .cs{font-size:12.5px;margin:7px 0 9px;line-height:1.4;color:rgba(31,37,48,.78)}
+#card .cb{display:flex;flex-wrap:wrap;gap:7px}
+.cbtn{appearance:none;border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:620;color:#fff;background:var(--accent);border-radius:12px;padding:8px 12px;text-align:left;transition:transform .2s ease,filter .2s ease;box-shadow:0 3px 10px rgba(30,40,60,.12)}
+.cbtn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.cbtn.dis{background:rgba(120,130,150,.18);color:rgba(31,37,48,.5);box-shadow:none;cursor:default}
+.cbtn small{display:block;font-size:11px;font-weight:500;margin-top:2px}
+body.night #card .ch span,body.night #card .cs{color:rgba(232,236,246,.7)} body.night .cbtn.dis{color:rgba(232,236,246,.5);background:rgba(255,255,255,.08)}
+#log{position:fixed;left:12px;bottom:34px;width:350px;max-width:calc(100vw - 24px);border-radius:16px;padding:10px 13px;z-index:5;font-size:12px;line-height:1.35}
+#log h4{margin:0 0 5px;font-size:10px;letter-spacing:.09em;color:rgba(31,37,48,.5);font-weight:750}
+#log .row{padding:2px 0;color:rgba(31,37,48,.62);animation:rowin .5s ease}
+#log .row:last-child{color:var(--ink);font-weight:560}
+#log .empty{color:rgba(31,37,48,.45)}
+@keyframes rowin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+button.icon{width:38px;height:38px;padding:0;display:grid;place-items:center}
+button.icon svg{width:19px;height:19px;display:block}
+button.icon.off{opacity:.5}
+button.icon .slash{display:none} button.icon.off .slash{display:inline}
+button.icon .moon{display:none} body.night button.icon .moon{display:inline} body.night button.icon .sun{display:none}
+#startNight{position:fixed;top:14px;right:14px;z-index:12}
+#toast{top:auto;bottom:84px}
+body,#fade{transition:background-color .8s ease,color .8s ease}
+body.night{--glass:rgba(26,32,56,.66);--ink:#e8ecf6}
+body.night .glass{border-color:rgba(255,255,255,.12);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+body.night #score div,body.night #footer,body.night #log h4,body.night #log .row,body.night #log .empty{color:rgba(232,236,246,.62)}
+body.night #log .row:last-child{color:var(--ink)}
+body.night #score .sep{background:rgba(255,255,255,.16)}
+body.night #start{background:linear-gradient(160deg,rgba(18,24,46,.84),rgba(28,34,64,.78))}
+body.night .sub,body.night .note,body.night .card p,body.night .how{color:rgba(232,236,246,.66)}
+body.night .logo{background:linear-gradient(145deg,#2d3558,#1c2240)} body.night .logo path{fill:#e8ecf6}
+body.night button.soft:hover{background:rgba(52,60,96,.85)}
+body.night .how span b{background:#e8ecf6;color:#1c2240}
+body.night #fade{background:#121831}
+@media (max-width:980px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){
+  .pill{font-size:12px;padding:7px 11px} button.soft{font-size:12px;padding:7px 11px}
+  #apName small{display:none} #score{gap:8px} #score div{font-size:11px} #score b{font-size:14px;margin-left:4px}
+  #hud{flex-wrap:wrap;justify-content:center} #hint{bottom:30px;font-size:12px} #footer{font-size:10.5px}
+  h1{font-size:30px} .cards{gap:12px} .card h3{font-size:15px} .card p{display:none}
+  button.icon{width:32px;height:32px} button.icon svg{width:16px;height:16px}
+  #caption{top:112px;font-size:12px} #toast{bottom:150px}
+  #card{left:8px;right:8px;width:auto;bottom:62px;padding:10px 12px} body.hasCard #log{display:none}
+  #log{left:8px;right:8px;width:auto;bottom:62px;padding:6px 10px;font-size:11px} #log h4{display:none} #log .row:nth-last-child(n+3){display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Airport view"></canvas>
+
+<div id="hud" class="fadeable hidden">
+  <div id="apName" class="glass pill"><span class="dot"></span><span id="apTitle">Dubai</span><small>· Calm Skies</small></div>
+  <div id="score" class="glass pill">
+    <div>Landings<b id="sLand">0</b></div><i class="sep"></i>
+    <div>Departures<b id="sDep">0</b></div><i class="sep"></i>
+    <div class="tot">Total<b id="sTot">0</b></div>
+  </div>
+  <div class="btns">
+    <button id="btnSound" class="glass soft icon" title="Sound on/off" aria-label="Sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" fill="currentColor" stroke="none"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="slash" d="M3 3l18 18"/></svg></button>
+    <button id="btnVoice" class="glass soft icon" title="Tower voice on/off" aria-label="Tower voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 16h-8l-4.5 3.5V16H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z"/><path d="M8 9.5h8M8 12.5h5"/><path class="slash" d="M3 3l18 18"/></svg></button>
+    <button id="btnNight" class="glass soft icon" title="Day / night" aria-label="Day or night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g><path class="moon" d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+    <button id="btnRestart" class="glass soft" title="Start this airport fresh">↺ Restart</button>
+    <button id="btnMenu" class="glass soft" title="Choose another airport">Airports</button>
+  </div>
+</div>
+<div id="hint" class="glass pill fadeable hidden"><span class="k"></span><span id="hintText">Tap a plane, then tap where it should go</span></div>
+<div id="footer" class="fadeable hidden">Demo game — made for an AI Workthrough video.</div>
+<div id="toast" class="glass pill"></div>
+<div id="caption" class="glass pill"><span class="twr">TOWER</span><span id="capText"></span></div>
+<div id="card" class="glass" aria-live="polite"></div>
+<div id="log" class="glass fadeable hidden"><h4>TOWER TRANSCRIPT</h4><div class="empty">Tower calls will appear here.</div></div>
+<button id="startNight" class="glass soft icon" title="Day / night" aria-label="Day or night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g><path class="moon" d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+
+<div id="start">
+  <div class="startInner">
+    <div class="logo"><svg width="30" height="30" viewBox="-20 -20 40 40"><g transform="rotate(-45)"><path d="M17 0Q16-3 12-3L-13-2.6Q-17-2-18 0Q-17 2-13 2.6L12 3Q16 3 17 0Z" fill="#1f2530"/><path d="M5-2.8L-4-16L-8.5-16L-4-2.8ZM5 2.8L-4 16L-8.5 16L-4 2.8ZM-12-2.4L-17-8L-19.5-8L-17-2ZM-12 2.4L-17 8L-19.5 8L-17 2Z" fill="#1f2530"/></g></svg></div>
+    <h1>Calm Skies</h1>
+    <p class="sub">A relaxing airport manager. Choose an airport to begin.</p>
+    <div class="cards" id="cards"></div>
+    <div class="how glass">
+      <span><b>1</b>Tap a circling plane → Cleared to land</span>
+      <span><b>2</b>Tap it again, then a gate or hangar to taxi</span>
+      <span><b>3</b>Pushback → Taxi → Line up → Cleared for take-off</span>
+    </div>
+    <p class="note" style="margin-top:10px">Nothing moves without your clearance. Planes wait patiently, and spacing is automatic.</p>
+    <p class="note">Demo game — made for an AI Workthrough video.<br>Fictional demo. Not affiliated with any airline or airport.</p>
+  </div>
+</div>
+<div id="fade"></div>
+
+<script>
+(()=>{
+'use strict';
+const W=1600,H=1000,TAU=Math.PI*2;
+const FONT='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rand=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const D=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function angDiff(a,b){let d=(b-a)%TAU;if(d>Math.PI)d-=TAU;if(d<-Math.PI)d+=TAU;return d;}
+const lerpAng=(a,b,t)=>a+angDiff(a,b)*t;
+const clampPt=p=>({x:clamp(p.x,75,W-75),y:clamp(p.y,75,H-75)});
+function rr(c,x,y,w,h,r){r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function blob(c,pts){const n=pts.length;c.beginPath();const m=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];let s=m(pts[n-1],pts[0]);c.moveTo(s[0],s[1]);for(let i=0;i<n;i++){const p=pts[i],q=m(p,pts[(i+1)%n]);c.quadraticCurveTo(p[0],p[1],q[0],q[1]);}c.closePath();}
+function ell(c,x,y,rx,ry,rot){c.beginPath();c.ellipse(x,y,rx,ry,rot||0,0,TAU);}
+
+/* ---------- paths ---------- */
+function smoothPath(pts,r0){
+  const p=[];for(const q of pts){if(!p.length||D(p[p.length-1],q)>0.5)p.push(q);}
+  if(p.length<3)return p.map(q=>({x:q.x,y:q.y}));
+  const out=[{x:p[0].x,y:p[0].y}];
+  for(let i=1;i<p.length-1;i++){
+    const a=p[i-1],b=p[i],c=p[i+1],l1=D(a,b),l2=D(b,c);
+    const r=Math.min(b.r!=null?b.r:r0,l1*0.5,l2*0.5);
+    if(r<1){out.push({x:b.x,y:b.y});continue;}
+    const s={x:b.x-(b.x-a.x)/l1*r,y:b.y-(b.y-a.y)/l1*r},e={x:b.x+(c.x-b.x)/l2*r,y:b.y+(c.y-b.y)/l2*r};
+    for(let k=0;k<=10;k++){const t=k/10,u=1-t;out.push({x:u*u*s.x+2*u*t*b.x+t*t*e.x,y:u*u*s.y+2*u*t*b.y+t*t*e.y});}
+  }
+  out.push({x:p[p.length-1].x,y:p[p.length-1].y});
+  return out;
+}
+class Path{
+  constructor(pts){this.p=pts;this.c=[0];for(let i=1;i<pts.length;i++)this.c.push(this.c[i-1]+D(pts[i-1],pts[i]));this.len=this.c[this.c.length-1];}
+  at(s){
+    const p=this.p,c=this.c;s=clamp(s,0,this.len);
+    if(p.length<2)return{x:p[0].x,y:p[0].y,a:0};
+    let lo=0,hi=c.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(c[m]<=s)lo=m;else hi=m;}
+    const seg=c[hi]-c[lo]||1,t=(s-c[lo])/seg,a=p[lo],b=p[hi];
+    return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,a:Math.atan2(b.y-a.y,b.x-a.x)};
+  }
+}
+
+/* ---------- airport definitions (all fictional) ---------- */
+const AIRPORTS=[
+ {key:'dubai',name:'Dubai',tag:'Desert gold & lagoon teal',desc:'Two staggered runways facing opposite ways, golden terminals and a palm lagoon.',city:'Dubai',
+  theme:{ground:'#f2e7d0',ground2:'#e9d7b5',runway:'#737882',mark:'#fbfaf5',taxi:'#bdb5a5',taxiLine:'#e3bd54',apron:'#e6decf',terminal:'#fdf8ed',roof:'#e3c47e',glass:'#8fd2cc',
+   accent:'#1fa095',accent2:'#e3a43a',hangar:'#e2d6bd',hangarRoof:'#cbb68d',water:'#a9ded7',water2:'#86cdc4',ink:'#2b2a26',night:'#454c7c',tree:'#9fbf8a'},
+  airlines:[{c:'EK',cs:'EMIRATES',n:'Emirates',col:'#d46a6a'},{c:'EK',cs:'EMIRATES',n:'Emirates',col:'#d46a6a'},{c:'FZ',cs:'SKYDUBAI',n:'flydubai',col:'#5b93c9'},{c:'FZ',cs:'SKYDUBAI',n:'flydubai',col:'#5b93c9'},{c:'QR',cs:'QATARI',n:'Qatar Airways',col:'#9b6a85'},{c:'EY',cs:'ETIHAD',n:'Etihad',col:'#c9a46a'},{c:'TK',cs:'TURKISH',n:'Turkish Airlines',col:'#d9786a'}],
+  systems:[{id:'d',ox:260,oy:230,ang:-6,L:1100,exits:[720,900],slots:'HGGGGG',prefix:'A',suffix:'L'},
+           {id:'e',ox:1420,oy:800,ang:174,L:900,exits:[600,760],slots:'GGGH',prefix:'B',suffix:'L',twy:['Charlie','Delta']}],decor:'dubai'},
+ {key:'london',name:'London Heathrow',tag:'Soft greys, meadow green, rain blue',desc:'Two calm parallel runways around a shared central terminal.',city:'London',
+  theme:{ground:'#e1e9dc',ground2:'#d6e2cf',runway:'#6d727b',mark:'#f7f8f6',taxi:'#a9aeb3',taxiLine:'#d8c46c',apron:'#d9dcdf',terminal:'#f3f4f5',roof:'#a8b3bd',glass:'#a3c5dc',
+   accent:'#4f88b8',accent2:'#6fae82',hangar:'#d6dade',hangarRoof:'#a9b2ba',water:'#bcd6e6',water2:'#a5c6dc',ink:'#252a31',night:'#38435f',tree:'#a9c3a2'},
+  airlines:[{c:'BA',cs:'SPEEDBIRD',n:'British Airways',col:'#4f74a8'},{c:'BA',cs:'SPEEDBIRD',n:'British Airways',col:'#4f74a8'},{c:'VS',cs:'VIRGIN',n:'Virgin Atlantic',col:'#c95e78'},{c:'VS',cs:'VIRGIN',n:'Virgin Atlantic',col:'#c95e78'},{c:'LH',cs:'LUFTHANSA',n:'Lufthansa',col:'#e2b64e'},{c:'QR',cs:'QATARI',n:'Qatar Airways',col:'#9b6a85'},{c:'EK',cs:'EMIRATES',n:'Emirates',col:'#d46a6a'}],
+  systems:[{id:'n',ox:290,oy:200,ang:0,L:1080,exits:[700,880],slots:'GGGGH',prefix:'A',hold:[-190,-95],suffix:'L'},
+           {id:'s',ox:290,oy:812,ang:0,flip:true,L:1080,exits:[700,880],slots:'HGGGG',prefix:'B',hold:[-190,-95],suffix:'R',twy:['Charlie','Delta']}],decor:'london'},
+ {key:'jfk',name:'New York JFK',tag:'Harbour blues & taxi-cab orange',desc:'Two runways at different angles hugging a busy central terminal area.',city:'New York',
+  theme:{ground:'#e3ebe7',ground2:'#d5e1db',runway:'#646b76',mark:'#f7f8fa',taxi:'#a3abb5',taxiLine:'#f0ae5c',apron:'#d8dee6',terminal:'#f4f7fa',roof:'#9db3cc',glass:'#a6c8ea',
+   accent:'#ee8640',accent2:'#4a84c4',hangar:'#d7dde4',hangarRoof:'#a5b2c2',water:'#aacbe6',water2:'#8fb8de',ink:'#1f2733',night:'#2c3959',tree:'#a7c4b2'},
+  airlines:[{c:'DL',cs:'DELTA',n:'Delta',col:'#5c6fb3'},{c:'DL',cs:'DELTA',n:'Delta',col:'#5c6fb3'},{c:'B6',cs:'JETBLUE',n:'JetBlue',col:'#55a0d8'},{c:'B6',cs:'JETBLUE',n:'JetBlue',col:'#55a0d8'},{c:'AA',cs:'AMERICAN',n:'American',col:'#8fa0b8'},{c:'AA',cs:'AMERICAN',n:'American',col:'#8fa0b8'},{c:'BA',cs:'SPEEDBIRD',n:'British Airways',col:'#4f74a8'},{c:'TK',cs:'TURKISH',n:'Turkish Airlines',col:'#d9786a'}],
+  systems:[{id:'a',ox:330,oy:170,ang:0,L:1050,exits:[690,860],slots:'GGGGH',prefix:'A'},
+           {id:'b',ox:1330,oy:900,ang:190,L:980,exits:[640,800],slots:'HGGG',prefix:'B',twy:['Charlie','Delta']}],decor:'jfk'},
+ {key:'lahore',name:'Lahore',tag:'Terracotta, rose & garden green',desc:'A long main runway, a tilted north runway and a Mughal-inspired garden.',city:'Lahore',
+  theme:{ground:'#f3e5d3',ground2:'#ecd8c0',runway:'#71695f',mark:'#fbf7f0',taxi:'#b8aa9b',taxiLine:'#e6b65a',apron:'#e8dccd',terminal:'#fbf1e6',roof:'#cf8a6b',glass:'#e9b9b4',
+   accent:'#c6704f',accent2:'#5f9d70',hangar:'#e4d3c0',hangarRoof:'#c79c80',water:'#b4d7de',water2:'#9cc7d0',ink:'#33271f',night:'#473d66',tree:'#8fb38a'},
+  airlines:[{c:'PK',cs:'PAKISTAN',n:'PIA',col:'#3f936c'},{c:'PK',cs:'PAKISTAN',n:'PIA',col:'#3f936c'},{c:'PA',cs:'AIRBLUE',n:'Airblue',col:'#4f86c6'},{c:'PA',cs:'AIRBLUE',n:'Airblue',col:'#4f86c6'},{c:'ER',cs:'SERENE',n:'Serene Air',col:'#8f74b8'},{c:'ER',cs:'SERENE',n:'Serene Air',col:'#8f74b8'},{c:'QR',cs:'QATARI',n:'Qatar Airways',col:'#9b6a85'},{c:'EY',cs:'ETIHAD',n:'Etihad',col:'#c9a46a'},{c:'TK',cs:'TURKISH',n:'Turkish Airlines',col:'#d9786a'}],
+  systems:[{id:'l',ox:1330,oy:800,ang:180,L:1050,exits:[690,860],slots:'HGGGGH',prefix:'A',hold:[-170,-110]},
+           {id:'m',ox:680,oy:160,ang:-7,L:820,exits:[600,740],slots:'GGGH',prefix:'B',twy:['Charlie','Delta']}],decor:'lahore',bboxExtra:[[40,240],[480,680]]},
+];
+
+function runwayName(dir){let h=(Math.atan2(dir.y,dir.x)*180/Math.PI+90+360)%360;let n=Math.round(h/10)%36;if(n===0)n=36;return String(n).padStart(2,'0');}
+
+const DIG=['zero','one','two','three','four','five','six','seven','eight','niner'];
+const sayNum=n=>String(n).split('').map(d=>DIG[+d]).join(' ');
+function sayRunway(n){return sayNum(n.replace(/[LR]/,''))+(n.endsWith('L')?' left':n.endsWith('R')?' right':'');}
+const title=w=>w.charAt(0)+w.slice(1).toLowerCase();
+function buildAirport(def){
+  const ap={def,theme:def.theme,nodes:{},adj:{},edges:[],gates:[],runways:[],systems:[],stubs:[]};
+  let hCount=0;
+  for(const cfg of def.systems){
+    const s=Object.assign({},cfg);ap.systems.push(s);
+    const a=cfg.ang*Math.PI/180,f=cfg.flip?-1:1,ca=Math.cos(a),sa=Math.sin(a);
+    s.m=[ca,sa,-sa*f,ca*f,cfg.ox,cfg.oy];
+    s.T=(x,y)=>({x:cfg.ox+ca*x-sa*f*y,y:cfg.oy+sa*x+ca*f*y});
+    s.dir={x:ca,y:sa};s.side={x:-sa*f,y:ca*f};
+    s.d=85;s.laneY=155;s.standY=213;s.termY0=246;s.termY1=306;s.ax1=120;
+    s.slotX=[...cfg.slots].map((_,i)=>s.ax1+50+i*76);s.ax2=s.slotX[s.slotX.length-1]+50;
+    const nid=k=>cfg.id+':'+k;
+    const tw=cfg.twy||['Alpha','Bravo'];
+    const node=(k,x,y)=>{const id=nid(k);if(!ap.nodes[id])ap.nodes[id]=Object.assign(s.T(x,y),{id,twy:k[0]==='P'?tw[0]:k[0]==='L'?tw[1]:null});return id;};
+    const edge=(u,v)=>{(ap.adj[u]=ap.adj[u]||[]).push(v);ap.edges.push([u,v]);};
+    const d=s.d,laneY=s.laneY,entryX=s.ax2+40,exitX=s.ax1-40,Pw=35;
+    const px=[...new Set([...cfg.exits.map(e=>e-30),entryX,exitX,Pw])].sort((p,q)=>q-p);
+    for(let i=0;i<px.length-1;i++)edge(node('P'+px[i],px[i],d),node('P'+px[i+1],px[i+1],d));
+    const lx=[s.ax2,...s.slotX,s.ax1].sort((p,q)=>q-p);
+    for(let i=0;i<lx.length-1;i++)edge(node('L'+lx[i],lx[i],laneY),node('L'+lx[i+1],lx[i+1],laneY));
+    edge(node('P'+entryX,entryX,d),node('L'+s.ax2,s.ax2,laneY));
+    edge(node('L'+s.ax1,s.ax1,laneY),node('P'+exitX,exitX,d));
+    const Hn=node('H',Pw,52);edge(node('P'+Pw,Pw,d),Hn);
+    const hc=cfg.hold||[-180,-165];
+    const rw={sys:s,id:cfg.id,A:s.T(0,0),B:s.T(cfg.L,0),thr:s.T(20,0),corner:s.T(Pw,0),LU:s.T(90,0),H:Hn,dir:s.dir,L:cfg.L,lock:null,
+      apprStart:s.T(-260,0),holdC:clampPt(s.T(hc[0],hc[1])),holdUsed:[null,null],exits:[],num:runwayName(s.dir),sfx:cfg.suffix||''};rw.name=rw.num+rw.sfx;rw.spoken=sayRunway(rw.name);
+    ap.stubs.push([s.T(Pw,14),ap.nodes[Hn]]);
+    cfg.exits.forEach((ex,i)=>{const X=node('X'+i,ex,52);edge(X,node('P'+(ex-30),ex-30,d));rw.exits.push({E:s.T(ex,0),X,occupant:null});ap.stubs.push([s.T(ex,12),ap.nodes[X]]);});
+    ap.runways.push(rw);s.rw=rw;
+    let gi=0;
+    [...cfg.slots].forEach((c,i)=>{const x=s.slotX[i];
+      ap.gates.push({sys:s,type:c==='H'?'hangar':'gate',x,N:nid('L'+x),P:s.T(x,s.standY),occupant:null,
+        label:c==='H'?'H'+(++hCount):cfg.prefix+(++gi),park:Math.atan2(s.side.y,s.side.x),
+        labelPos:c==='H'?s.T(x,s.standY+60):s.T(x,laneY+30)});});
+  }
+  // content bounding box used to zoom the view onto the interesting part of the map
+  const pts=[];
+  for(const rw of ap.runways){pts.push(rw.A,rw.B);const c=rw.holdC;pts.push({x:c.x-95,y:c.y-95},{x:c.x+95,y:c.y+95});}
+  for(const s of ap.systems){pts.push(s.T(s.ax1-40,s.termY1+16),s.T(s.ax2+40,s.termY1+16),s.T(s.ax1-40,-40),s.T(s.ax2+40,-40));}
+  for(const q of (def.bboxExtra||[]))pts.push({x:q[0],y:q[1]});
+  const xs=pts.map(q=>q.x),ys=pts.map(q=>q.y);
+  ap.bbox={x0:Math.max(0,Math.min(...xs)-30),y0:Math.max(0,Math.min(...ys)-30),x1:Math.min(W,Math.max(...xs)+30),y1:Math.min(H,Math.max(...ys)+30)};
+  return ap;
+}
+function findPath(ap,from,to){
+  const dist={},prev={},Q=new Set(Object.keys(ap.nodes));
+  for(const k of Q)dist[k]=Infinity;dist[from]=0;
+  while(Q.size){let u=null,b=Infinity;for(const k of Q)if(dist[k]<b){b=dist[k];u=k;}if(u===null)break;Q.delete(u);if(u===to)break;
+    for(const v of(ap.adj[u]||[])){const nd=dist[u]+D(ap.nodes[u],ap.nodes[v]);if(nd<dist[v]){dist[v]=nd;prev[v]=u;}}}
+  if(dist[to]===Infinity)return null;
+  const p=[to];while(p[0]!==from)p.unshift(prev[p[0]]);return p;
+}
+
+/* ---------- drawing: static scene ---------- */
+function withLocal(c,s,fn){c.save();c.transform(...s.m);fn();c.restore();}
+function drawPlaneShape(c){
+  c.beginPath();
+  c.moveTo(5,-2.8);c.lineTo(-4,-16);c.lineTo(-8.5,-16);c.lineTo(-4.5,-2.8);c.closePath();
+  c.moveTo(5,2.8);c.lineTo(-4,16);c.lineTo(-8.5,16);c.lineTo(-4.5,2.8);c.closePath();
+  c.moveTo(-12,-2.4);c.lineTo(-16.5,-8);c.lineTo(-19,-8);c.lineTo(-17,-2);c.closePath();
+  c.moveTo(-12,2.4);c.lineTo(-16.5,8);c.lineTo(-19,8);c.lineTo(-17,2);c.closePath();
+  c.moveTo(17,0);c.quadraticCurveTo(16,-3.2,12,-3.2);c.lineTo(-13,-2.6);c.quadraticCurveTo(-17.5,-2,-18.5,0);c.quadraticCurveTo(-17.5,2,-13,2.6);c.lineTo(12,3.2);c.quadraticCurveTo(16,3.2,17,0);c.closePath();
+}
+function drawPlane(c,x,y,h,col,sc,alpha){
+  c.save();c.translate(x,y);c.rotate(h);c.scale(sc,sc);c.globalAlpha=alpha;
+  // wings
+  c.fillStyle='#eef1f5';c.strokeStyle='rgba(30,40,60,.10)';c.lineWidth=0.6;
+  c.beginPath();c.moveTo(5,-2.8);c.lineTo(-4,-16);c.lineTo(-8.5,-16);c.lineTo(-4.5,-2.8);c.closePath();
+  c.moveTo(5,2.8);c.lineTo(-4,16);c.lineTo(-8.5,16);c.lineTo(-4.5,2.8);c.closePath();c.fill();c.stroke();
+  c.fillStyle=col;c.fillRect(-8.3,-16,4.1,1.6);c.fillRect(-8.3,14.4,4.1,1.6);
+  rr(c,-1.5,-9.6,6,2.6,1.3);c.fill();rr(c,-1.5,7,6,2.6,1.3);c.fill();
+  // tail
+  c.beginPath();c.moveTo(-12,-2.4);c.lineTo(-16.5,-8);c.lineTo(-19,-8);c.lineTo(-17,-2);c.closePath();
+  c.moveTo(-12,2.4);c.lineTo(-16.5,8);c.lineTo(-19,8);c.lineTo(-17,2);c.closePath();c.fill();
+  // fuselage
+  c.fillStyle='#ffffff';c.beginPath();c.moveTo(17,0);c.quadraticCurveTo(16,-3.2,12,-3.2);c.lineTo(-13,-2.6);c.quadraticCurveTo(-17.5,-2,-18.5,0);c.quadraticCurveTo(-17.5,2,-13,2.6);c.lineTo(12,3.2);c.quadraticCurveTo(16,3.2,17,0);c.closePath();c.fill();c.stroke();
+  c.fillStyle=col;c.globalAlpha=alpha*0.9;rr(c,-18,-1,13,2,1);c.fill();
+  c.globalAlpha=alpha;c.fillStyle='rgba(40,55,75,.75)';c.beginPath();c.ellipse(14.2,0,1.5,2,0,0,TAU);c.fill();
+  c.restore();
+}
+function drawShadow(c,x,y,h,sc,alpha){c.save();c.translate(x,y);c.rotate(h);c.scale(sc,sc);c.globalAlpha=alpha;c.fillStyle='rgba(25,35,45,1)';drawPlaneShape(c);c.fill();c.restore();}
+
+function decorBack(c,ap){
+  const th=ap.theme,k=ap.def.decor;
+  if(k==='dubai'){
+    c.fillStyle=th.ground2;
+    for(const d of [[1490,330,150,48,-0.3],[760,40,230,36,0.05],[1500,640,110,34,0.4],[620,640,150,38,0.1],[1150,960,220,40,0.05],[90,80,90,30,0.2]]){c.globalAlpha=.75;ell(c,d[0],d[1],d[2],d[3],d[4]);c.fill();c.globalAlpha=.45;ell(c,d[0]+20,d[1]+12,d[2]*.7,d[3]*.55,d[4]);c.fillStyle='#f7eedb';c.fill();c.fillStyle=th.ground2;}
+    c.globalAlpha=1;
+    const g=c.createLinearGradient(0,460,0,940);g.addColorStop(0,th.water);g.addColorStop(1,th.water2);
+    blob(c,[[-60,470],[160,450],[380,540],[420,720],[350,900],[120,960],[-60,900]]);c.fillStyle=g;c.fill();
+    c.strokeStyle='rgba(255,255,255,.65)';c.lineWidth=7;c.stroke();
+    // palm island
+    const cx=200,cy=690;c.strokeStyle='#f6ecd6';c.lineCap='round';
+    c.lineWidth=20;c.beginPath();c.moveTo(cx,850);c.lineTo(cx,cy+8);c.stroke();
+    c.lineWidth=8;for(let i=0;i<9;i++){const a=-Math.PI/2+(i-4)*0.3;c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+Math.cos(a)*72,cy+Math.sin(a)*72);c.stroke();}
+    c.lineWidth=9;c.beginPath();c.arc(cx,cy,98,Math.PI*1.03,Math.PI*1.97);c.stroke();
+    c.fillStyle='#f6ecd6';ell(c,cx,cy,13,13);c.fill();
+    for(const p of [[330,600,26,11],[60,560,22,9],[300,880,30,12]]){ell(c,p[0],p[1],p[2],p[3],0.2);c.fill();}
+  } else if(k==='london'){
+    c.fillStyle='#cddcc6';c.fillRect(-200,-200,W+400,H+400);
+    const cols=[th.ground,th.ground2,'#e7ede1','#dbe5d4'];
+    let i=0;for(let y=-40;y<H+40;y+=150)for(let x=-60;x<W+60;x+=210){c.fillStyle=cols[(i++*7+(y/150|0))%4];rr(c,x+4,y+4,202,142,14);c.fill();}
+    // river
+    c.lineCap='round';c.lineJoin='round';
+    c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=58;c.beginPath();c.moveTo(1490,-40);c.bezierCurveTo(1580,240,1420,420,1515,560);c.bezierCurveTo(1600,700,1440,860,1500,1060);c.stroke();
+    c.strokeStyle=th.water;c.lineWidth=46;c.stroke();
+    c.strokeStyle='rgba(255,255,255,.35)';c.lineWidth=4;c.setLineDash([30,40]);c.stroke();c.setLineDash([]);
+    // reservoir
+    rr(c,40,400,170,200,46);c.fillStyle=th.water;c.fill();c.strokeStyle='rgba(255,255,255,.75)';c.lineWidth=8;c.stroke();
+  } else if(k==='jfk'){
+    const g=c.createLinearGradient(0,700,0,1000);g.addColorStop(0,th.water);g.addColorStop(1,th.water2);
+    blob(c,[[-80,800],[120,790],[300,860],[520,930],[680,1100],[-80,1100]]);c.fillStyle=g;c.fill();c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=7;c.stroke();
+    blob(c,[[1400,-80],[1700,-80],[1700,470],[1570,400],[1490,250],[1440,90]]);c.fillStyle=th.water;c.fill();c.stroke();
+    c.fillStyle='#cfe0d4';for(const p of [[110,900,50,18],[240,950,36,14],[1600,180,40,60]]){ell(c,p[0],p[1],p[2],p[3],0.3);c.fill();}
+    // ring plaza
+    const cx=1280,cy=390;c.fillStyle='#d3ddd9';ell(c,cx,cy,82,62);c.fill();
+    c.strokeStyle='#bcc5cf';c.lineWidth=14;ell(c,cx,cy,74,54);c.stroke();
+    c.fillStyle='#cfe3d3';ell(c,cx,cy,52,34);c.fill();c.fillStyle=th.water;ell(c,cx,cy,22,13);c.fill();
+    c.fillStyle='rgba(238,134,64,.55)';for(let i=0;i<12;i++){const a=i/12*TAU;ell(c,cx+Math.cos(a)*74,cy+Math.sin(a)*54,3,3);c.fill();}
+  } else if(k==='lahore'){
+    // fields below runway
+    const cols=['#efdcc4','#e6d3b8','#eadfc9','#dfe0c0'];let i=0;
+    for(let x=-40;x<W+40;x+=170){c.fillStyle=cols[i++%4];rr(c,x+5,868,160,62,12);c.fill();}
+    c.strokeStyle='rgba(255,255,255,.75)';c.lineWidth=52;c.lineCap='round';c.beginPath();c.moveTo(-40,985);c.bezierCurveTo(300,950,520,1020,820,980);c.bezierCurveTo(1100,950,1300,1010,1660,975);c.stroke();
+    c.strokeStyle=th.water;c.lineWidth=40;c.stroke();
+    // charbagh garden
+    const gx=60,gy=250,gs=400;
+    c.save();c.shadowColor='rgba(80,40,20,.15)';c.shadowBlur=20*SH;c.shadowOffsetY=6*SH;rr(c,gx,gy,gs,gs,24);c.fillStyle='#e9d2bd';c.fill();c.restore();
+    c.strokeStyle=th.accent;c.lineWidth=7;rr(c,gx,gy,gs,gs,24);c.stroke();
+    const q=(gs-60)/2;
+    for(const [ox,oy] of [[0,0],[1,0],[0,1],[1,1]]){const x=gx+20+ox*(q+20),y=gy+20+oy*(q+20);rr(c,x,y,q,q,16);c.fillStyle='#bfd6b2';c.fill();c.strokeStyle='#e8b4b0';c.lineWidth=4;c.stroke();
+      c.fillStyle='#a9c79c';rr(c,x+22,y+22,q-44,q-44,12);c.fill();
+      c.fillStyle='#e8a9a6';for(let j=0;j<4;j++){ell(c,x+q/2+Math.cos(j*Math.PI/2)*(q/2-12),y+q/2+Math.sin(j*Math.PI/2)*(q/2-12),5,5);c.fill();}}
+    c.fillStyle=th.water;rr(c,gx+20,gy+gs/2-8,gs-40,16,8);c.fill();rr(c,gx+gs/2-8,gy+20,16,gs-40,8);c.fill();
+    c.save();c.translate(gx+gs/2,gy+gs/2);c.beginPath();for(let j=0;j<8;j++){const a=j/8*TAU+Math.PI/8;c.lineTo(Math.cos(a)*36,Math.sin(a)*36);}c.closePath();c.fillStyle='#f6eadf';c.fill();c.strokeStyle=th.accent;c.lineWidth=3;c.stroke();
+    c.fillStyle=th.water;ell(c,0,0,22,22);c.fill();c.fillStyle='rgba(255,255,255,.85)';ell(c,0,0,6,6);c.fill();c.restore();
+    // gateway
+    c.fillStyle=th.accent;rr(c,gx+gs/2-50,gy+gs-14,100,30,8);c.fill();c.fillStyle='#f6eadf';c.beginPath();c.arc(gx+gs/2,gy+gs+4,10,Math.PI,0);c.lineTo(gx+gs/2+10,gy+gs+16);c.lineTo(gx+gs/2-10,gy+gs+16);c.fill();
+    // top band strip of lawns
+    c.fillStyle='#e6d2bd';rr(c,1270,296,290,58,22);c.fill();c.fillStyle=th.water;rr(c,1288,314,254,22,11);c.fill();
+    c.fillStyle='rgba(255,255,255,.85)';for(let x=1310;x<1530;x+=44){ell(c,x,325,4,4);c.fill();}
+  }
+}
+function decorFront(c,ap){
+  const th=ap.theme,k=ap.def.decor;
+  const tree=(x,y,r,col)=>{c.fillStyle='rgba(40,50,30,.12)';ell(c,x+3,y+4,r,r);c.fill();c.fillStyle=col||th.tree;ell(c,x,y,r,r);c.fill();c.fillStyle='rgba(255,255,255,.18)';ell(c,x-r*.3,y-r*.3,r*.45,r*.45);c.fill();};
+  if(k==='dubai'){for(const p of [[560,600],[600,625],[650,640],[470,620],[1480,440],[1520,470],[1460,700],[60,300],[100,330],[1560,880]]){tree(p[0],p[1],9,'#a6c48e');}}
+  if(k==='london'){for(const p of [[30,200],[60,170],[1340,560],[1370,590],[1320,480],[90,700],[130,730],[60,760],[250,520],[1400,940],[700,970],[740,960],[1000,30],[1040,40]])tree(p[0],p[1],11);}
+  if(k==='jfk'){for(const p of [[1220,330],[1340,330],[1220,450],[1340,450],[160,330],[200,360],[240,330],[1440,640],[1480,600],[620,560],[660,590]])tree(p[0],p[1],9);}
+  if(k==='lahore'){
+    const gx=60,gy=250,gs=400;
+    for(let i=0;i<=8;i++){tree(gx-14,gy+i*50,7,'#6f9a6a');tree(gx+gs+14,gy+i*50,7,'#6f9a6a');}
+    for(let i=1;i<8;i++){tree(gx+i*50,gy-14,7,'#6f9a6a');}
+    for(const p of [[1300,640],[1340,670],[1560,560],[560,110],[600,80],[1560,420],[1270,400]])tree(p[0],p[1],10);
+  }
+}
+function drawTerminal(c,ap,s){
+  const th=ap.theme,style=ap.def.decor;
+  const gates=ap.gates.filter(g=>g.sys===s&&g.type==='gate');if(!gates.length)return;
+  const x0=Math.min(...gates.map(g=>g.x))-40,x1=Math.max(...gates.map(g=>g.x))+40,y0=s.termY0,y1=s.termY1;
+  c.save();c.shadowColor='rgba(40,45,60,.16)';c.shadowBlur=18*SH;c.shadowOffsetY=5*SH;
+  rr(c,x0,y0,x1-x0,y1-y0,style==='jfk'?30:16);c.fillStyle=th.terminal;c.fill();c.restore();
+  c.fillStyle=th.glass;rr(c,x0+10,y0+5,x1-x0-20,7,3.5);c.fill();
+  c.globalAlpha=.6;c.fillStyle=th.roof;rr(c,x0+12,y0+19,x1-x0-24,y1-y0-30,10);c.fill();c.globalAlpha=1;
+  c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=2;
+  if(style==='dubai'){for(let x=x0+30;x<x1-20;x+=34){c.beginPath();c.arc(x,y0+48,15,Math.PI*1.1,Math.PI*1.9);c.stroke();}c.fillStyle=th.accent;rr(c,x0+12,y1-14,x1-x0-24,4,2);c.fill();}
+  if(style==='london'){c.fillStyle=th.accent2;c.globalAlpha=.5;for(let x=x0+24;x<x1-60;x+=70){rr(c,x,y0+26,50,22,6);c.fill();}c.globalAlpha=1;for(let x=x0+20;x<x1-10;x+=14){c.beginPath();c.moveTo(x,y0+54);c.lineTo(x,y1-14);c.stroke();}}
+  if(style==='jfk'){c.fillStyle=th.accent;rr(c,x0+24,(y0+y1)/2-3,x1-x0-48,6,3);c.fill();c.fillStyle='rgba(255,255,255,.75)';for(let x=x0+40;x<x1-30;x+=60){ell(c,x,y0+34,7,7);c.fill();}}
+  if(style==='lahore'){
+    for(let x=x0+16;x<x1-10;x+=12){c.fillStyle='rgba(255,255,255,.8)';c.beginPath();c.arc(x+4,y0+12,4,Math.PI,0);c.fill();}
+    for(const fx of [0.2,0.5,0.8]){const x=x0+(x1-x0)*fx,y=(y0+y1)/2+4;const gr=c.createRadialGradient(x-5,y-5,2,x,y,17);gr.addColorStop(0,'#ffffff');gr.addColorStop(1,'#efc4bd');c.fillStyle=gr;ell(c,x,y,fx===0.5?19:14,fx===0.5?19:14);c.fill();c.strokeStyle=th.accent;c.lineWidth=1.5;c.stroke();}
+  }
+  // jet bridges
+  for(const g of gates){c.fillStyle='#dfe3e8';c.strokeStyle='rgba(0,0,0,.08)';c.lineWidth=1;rr(c,g.x+6,s.standY+2,7,y0-s.standY+2,2.5);c.fill();c.stroke();}
+}
+function drawHangar(c,ap,g){
+  const th=ap.theme,s=g.sys,x=g.x,y0=s.standY-32,y1=s.termY1;
+  c.save();c.shadowColor='rgba(40,45,60,.14)';c.shadowBlur=14*SH;c.shadowOffsetY=4*SH;
+  rr(c,x-35,y0,70,y1-y0,6);c.fillStyle=th.hangar;c.fill();c.restore();
+  c.fillStyle='rgba(255,255,255,.35)';rr(c,x-30,y0+3,60,y1-y0-8,4);c.fill();
+  c.strokeStyle=th.hangarRoof;c.lineWidth=4;c.beginPath();c.moveTo(x-35,y0);c.lineTo(x-35,y1);c.lineTo(x+35,y1);c.lineTo(x+35,y0);c.stroke();
+  c.fillStyle=th.hangarRoof;rr(c,x-35,s.standY+21,70,y1-s.standY-21,4);c.fill();
+  c.strokeStyle='rgba(255,255,255,.4)';c.lineWidth=1.5;for(let xx=x-28;xx<=x+28;xx+=8){c.beginPath();c.moveTo(xx,s.standY+24);c.lineTo(xx,y1-3);c.stroke();}
+}
+let SH=1;
+function renderStatic(c,ap,v,dpr,opts={}){
+  const th=ap.theme;SH=dpr*v.s;
+  c.setTransform(1,0,0,1,0,0);c.fillStyle=th.ground;c.fillRect(0,0,c.canvas.width,c.canvas.height);
+  c.setTransform(dpr*v.m[0],dpr*v.m[1],dpr*v.m[2],dpr*v.m[3],dpr*v.m[4],dpr*v.m[5]);
+  c.save();decorBack(c,ap);c.restore();
+  c.lineCap='round';c.lineJoin='round';
+  // aprons
+  for(const s of ap.systems)withLocal(c,s,()=>{rr(c,s.ax1-34,s.laneY-26,s.ax2-s.ax1+68,s.termY0-s.laneY+30,18);c.fillStyle=th.apron;c.fill();c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=2;c.stroke();});
+  // taxiways
+  const lines=[...ap.edges.map(([a,b])=>[ap.nodes[a],ap.nodes[b]]),...ap.stubs];
+  const stroke=(w,col)=>{c.strokeStyle=col;c.lineWidth=w;for(const [a,b] of lines){c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();}};
+  stroke(23,'rgba(255,255,255,.55)');stroke(19,th.taxi);
+  // runways
+  for(const rw of ap.runways){const s=rw.sys;
+    withLocal(c,s,()=>{
+      c.save();c.shadowColor='rgba(30,35,45,.15)';c.shadowBlur=10*SH;c.shadowOffsetY=3*SH;rr(c,-6,-17,rw.L+12,34,7);c.fillStyle=th.runway;c.fill();c.restore();
+      c.strokeStyle='rgba(255,255,255,.35)';c.lineWidth=1.2;c.beginPath();c.moveTo(4,-14);c.lineTo(rw.L-4,-14);c.moveTo(4,14);c.lineTo(rw.L-4,14);c.stroke();
+      c.fillStyle=th.mark;c.globalAlpha=.9;for(let x=70;x<rw.L-80;x+=42)c.fillRect(x,-0.9,22,1.8);
+      for(let k=-3;k<=3;k++){if(k===0)continue;c.fillRect(4,k*3.8-1.2,22,2.4);c.fillRect(rw.L-26,k*3.8-1.2,22,2.4);}
+      for(const x of [140,rw.L-160])for(const y of [-9,7])c.fillRect(x,y,24,2.4);
+      c.globalAlpha=1;
+    });
+    const ang=Math.atan2(rw.dir.y,rw.dir.x),opp=String(((+rw.num+17)%36)+1).padStart(2,'0')+({L:'R',R:'L'}[rw.sfx]||'');
+    c.fillStyle=th.mark;c.globalAlpha=.85;c.font=`700 12px ${FONT}`;c.textAlign='center';c.textBaseline='middle';
+    let p=rw.sys.T(52,0);c.save();c.translate(p.x,p.y);c.rotate(ang+Math.PI/2);c.fillText(rw.name,0,0);c.restore();
+    p=rw.sys.T(rw.L-52,0);c.save();c.translate(p.x,p.y);c.rotate(ang-Math.PI/2);c.fillText(opp,0,0);c.restore();c.globalAlpha=1;
+  }
+  stroke(1.6,th.taxiLine);
+  // hold-short bars
+  for(const rw of ap.runways){withLocal(c,rw.sys,()=>{c.strokeStyle=th.taxiLine;c.lineWidth=1.6;for(const y of [28,32]){c.beginPath();c.moveTo(25,y);c.lineTo(45,y);c.stroke();}});}
+  // stands
+  for(const g of ap.gates){const N=ap.nodes[g.N];c.strokeStyle=th.taxiLine;c.lineWidth=1.4;c.globalAlpha=.85;c.beginPath();c.moveTo(N.x,N.y);c.lineTo(g.P.x,g.P.y);c.stroke();c.globalAlpha=1;}
+  for(const g of ap.gates)if(g.type==='hangar')withLocal(c,g.sys,()=>drawHangar(c,ap,g));
+  for(const s of ap.systems)withLocal(c,s,()=>{drawTerminal(c,ap,s);
+    c.strokeStyle=th.taxiLine;c.lineWidth=2;for(const g of ap.gates)if(g.sys===s&&g.type==='gate'){c.beginPath();c.moveTo(g.x-7,s.standY+22);c.lineTo(g.x+7,s.standY+22);c.stroke();}});
+  c.save();decorFront(c,ap);c.restore();
+  if(opts.planes){for(const [i,col] of opts.planes){const g=ap.gates[i];if(!g)continue;drawShadow(c,g.P.x+1.5,g.P.y+2.5,g.park,1,.16);drawPlane(c,g.P.x,g.P.y,g.park,col,1,1);}}
+  if(!opts.noLabels){
+    c.setTransform(1,0,0,1,0,0);c.textAlign='center';c.textBaseline='middle';
+    for(const g of ap.gates){const q=v.toScreen(g.labelPos.x,g.labelPos.y);c.font=`600 ${10.5*dpr}px ${FONT}`;c.fillStyle=g.type==='hangar'?'rgba(255,255,255,.95)':'rgba(40,45,55,.55)';c.fillText(g.label,q.x*dpr,q.y*dpr);}
+  }
+}
+
+/* ---------- settings ---------- */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v==='1';}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,v?'1':'0');}catch(e){}}};
+const S={night:store.get('calmSkies.night',false),sound:store.get('calmSkies.sound',true),voice:store.get('calmSkies.voice',true)};
+let nightT=S.night?1:0;
+
+/* ---------- gentle synthesized sound (Web Audio) ---------- */
+const Snd={ctx:null,master:null,humG:null,
+  init(){
+    if(this.ctx){if(this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});return;}
+    try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+      const c=this.ctx=new AC();this.master=c.createGain();this.master.gain.value=0;this.master.connect(c.destination);
+      this.master.gain.setTargetAtTime(S.sound?0.55:0,c.currentTime,0.4);
+      const len=c.sampleRate*2,buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);let b=0;for(let i=0;i<len;i++){b=0.97*b+0.03*(Math.random()*2-1);d[i]=b*3;}this.noise=buf;
+      // quiet taxi hum: two detuned low oscillators through a soft low-pass
+      const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=180;this.humG=c.createGain();this.humG.gain.value=0;
+      for(const f of [62,93.5]){const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;o.connect(lp);o.start();}
+      lp.connect(this.humG);this.humG.connect(this.master);
+      if(c.state==='suspended')c.resume().catch(()=>{});
+    }catch(e){this.ctx=null;}
+  },
+  ok(){return this.ctx&&S.sound&&G&&!G.attract;},
+  setOn(on){if(this.ctx)this.master.gain.setTargetAtTime(on?0.55:0,this.ctx.currentTime,0.35);},
+  hum(level){if(!this.ctx||!this.humG)return;this.humG.gain.setTargetAtTime(level*0.045,this.ctx.currentTime,0.9);},
+  whoosh(up){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime,dur=up?4.2:3.4;
+    const src=c.createBufferSource();src.buffer=this.noise;src.loop=true;const bp=c.createBiquadFilter();bp.type='bandpass';bp.Q.value=0.8;
+    bp.frequency.setValueAtTime(up?260:900,t);bp.frequency.exponentialRampToValueAtTime(up?1100:240,t+dur);
+    const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.16,t+dur*0.35);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    src.connect(bp);bp.connect(g);g.connect(this.master);src.start(t);src.stop(t+dur+0.1);}catch(e){}},
+  tug(){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime,dur=2.6;
+    const o=c.createOscillator();o.type='triangle';o.frequency.value=74;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=320;
+    const am=c.createGain();am.gain.value=0.5;const lfo=c.createOscillator();lfo.frequency.value=7;const lg=c.createGain();lg.gain.value=0.5;lfo.connect(lg);lg.connect(am.gain);
+    const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.09,t+0.5);g.gain.setValueAtTime(0.09,t+dur-0.8);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(lp);lp.connect(am);am.connect(g);g.connect(this.master);o.start(t);lfo.start(t);o.stop(t+dur+0.1);lfo.stop(t+dur+0.1);}catch(e){}},
+  chime(kind){if(!this.ok())return;try{const c=this.ctx,t=c.currentTime;const notes=kind?[659.3,987.8]:[880];
+    notes.forEach((f,i)=>{const o=c.createOscillator();o.type='sine';o.frequency.value=f;const g=c.createGain();const t0=t+i*0.11;
+      g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(0.05,t0+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+0.9);
+      o.connect(g);g.connect(this.master);o.start(t0);o.stop(t0+1);});}catch(e){}}
+};
+['pointerdown','keydown','touchstart'].forEach(ev=>window.addEventListener(ev,()=>Snd.init(),{passive:true}));
+
+/* ---------- tower radio: caption, transcript, optional speech ---------- */
+const speechOK=(()=>{try{return 'speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='undefined';}catch(e){return false;}})();
+let towerVoice=null;
+function pickVoice(){if(!speechOK)return;try{const vs=speechSynthesis.getVoices()||[];const pref=['Google UK English Female','Samantha','Daniel','Microsoft Libby','Microsoft Sonia','Microsoft Aria','Karen','Moira','Serena'];
+  towerVoice=vs.find(v=>pref.some(n=>v.name.includes(n)))||vs.find(v=>/^en(-|_)GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null;}catch(e){}}
+if(speechOK){try{pickVoice();speechSynthesis.addEventListener('voiceschanged',pickVoice);}catch(e){}}
+const Radio={q:[],cur:null,log:[],hideT:0,
+  say(text,spoken){if(!G||G.attract)return;this.q.push({text,spoken,t:performance.now()});this.pump();},
+  pump(){if(this.cur)return;
+    while(this.q.length){const m=this.q.shift();
+      if(this.q.length&&performance.now()-m.t>9000){this.addLog(m);continue;} // stale: shown in transcript, not spoken
+      this.play(m);return;}
+    clearTimeout(this.hideT);this.hideT=setTimeout(()=>$('caption').classList.remove('show'),1400);},
+  play(m){this.cur=m;this.addLog(m);clearTimeout(this.hideT);$('capText').textContent=m.text;$('caption').classList.add('show');
+    let done=false;const fin=()=>{if(done)return;done=true;clearTimeout(m.timer);setTimeout(()=>{if(this.cur===m){this.cur=null;this.pump();}},500);};
+    const readMs=1700+m.text.length*48;
+    if(S.voice&&speechOK){m.timer=setTimeout(fin,readMs+7000);
+      try{const u=new SpeechSynthesisUtterance(m.spoken);u.rate=0.9;u.pitch=0.97;u.volume=0.85;u.lang='en-GB';if(towerVoice)u.voice=towerVoice;
+        u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);}catch(e){clearTimeout(m.timer);m.timer=setTimeout(fin,readMs);}}
+    else m.timer=setTimeout(fin,readMs);},
+  addLog(m){this.log.push(m.text);if(this.log.length>40)this.log.shift();
+    const el=$('log');el.querySelectorAll('.row,.empty').forEach(r=>r.remove());
+    for(const t of this.log.slice(-4)){const r=document.createElement('div');r.className='row';r.textContent=t;el.appendChild(r);}},
+  reset(){this.q=[];if(this.cur)clearTimeout(this.cur.timer);this.cur=null;this.log=[];if(speechOK){try{speechSynthesis.cancel();}catch(e){}}
+    $('caption').classList.remove('show');const el=$('log');el.querySelectorAll('.row,.empty').forEach(r=>r.remove());el.insertAdjacentHTML('beforeend','<div class="empty">Tower calls will appear here.</div>');},
+  voiceOff(){if(speechOK){try{speechSynthesis.cancel();}catch(e){}}}
+};
+function tower(p,msg){
+  const text=p.callT+', '+msg;
+  const spoken=p.call+', '+msg.replace(/runway (\d{2}[LR]?)/g,(m,r)=>'runway '+sayRunway(r)).replace(/(gate|hangar) ([A-Z]+)(\d)/g,(m,k,a,b)=>k+' '+a+' '+DIG[+b]);
+  Radio.say(text,spoken);
+}
+
+/* ---------- night lights (pre-rendered) ---------- */
+function renderLights(c,ap,v,dpr){
+  c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,c.canvas.width,c.canvas.height);
+  c.setTransform(dpr*v.m[0],dpr*v.m[1],dpr*v.m[2],dpr*v.m[3],dpr*v.m[4],dpr*v.m[5]);
+  c.globalCompositeOperation='lighter';
+  const dot=(x,y,rgb,r,a=1)=>{const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${rgb},${a})`);g.addColorStop(0.22,`rgba(${rgb},${a*0.9})`);g.addColorStop(1,`rgba(${rgb},0)`);c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);};
+  for(const s of ap.systems)withLocal(c,s,()=>{
+    const gates=ap.gates.filter(g=>g.sys===s&&g.type==='gate');
+    if(gates.length){const x0=Math.min(...gates.map(g=>g.x))-40,x1=Math.max(...gates.map(g=>g.x))+40,y0=s.termY0,y1=s.termY1;
+      c.fillStyle='rgba(255,196,120,.16)';rr(c,x0-6,y0-8,x1-x0+12,y1-y0+16,20);c.fill();
+      c.fillStyle='rgba(255,205,140,.75)';rr(c,x0+10,y0+5,x1-x0-20,7,3.5);c.fill();
+      c.fillStyle='rgba(255,215,160,.5)';for(let x=x0+22;x<x1-16;x+=18)for(let y=y0+24;y<y1-12;y+=14){c.fillRect(x,y,7,3);}}
+    for(const g of ap.gates)if(g.sys===s){
+      const gr=c.createRadialGradient(g.x,s.standY,2,g.x,s.standY,40);gr.addColorStop(0,'rgba(255,220,160,.28)');gr.addColorStop(1,'rgba(255,220,160,0)');c.fillStyle=gr;c.fillRect(g.x-40,s.standY-40,80,80);
+      if(g.type==='hangar'){c.fillStyle='rgba(255,225,170,.55)';c.fillRect(g.x-33,s.standY-33,66,3);}}
+  });
+  for(const rw of ap.runways){const T=rw.sys.T;
+    for(let t=4;t<=rw.L-4;t+=32)for(const y of [-17,17]){const q=T(t,y);dot(q.x,q.y,'255,238,200',5);}
+    for(let y=-14;y<=14;y+=5){let q=T(-2,y);dot(q.x,q.y,'110,255,170',5);q=T(rw.L+2,y);dot(q.x,q.y,'255,110,110',5);}
+    for(let t=70;t<rw.L-60;t+=30){const q=T(t,0);dot(q.x,q.y,'255,250,235',3,.6);}}
+  const lines=[...ap.edges.map(([a,b])=>[ap.nodes[a],ap.nodes[b]]),...ap.stubs];
+  for(const [a,b] of lines){const len=D(a,b);if(len<1)continue;const ux=(b.x-a.x)/len,uy=(b.y-a.y)/len;
+    for(let d=6;d<len-3;d+=22)for(const sd of [-11,11]){dot(a.x+ux*d-uy*sd,a.y+uy*d+ux*sd,'95,150,255',4.2);}
+    for(let d=17;d<len-3;d+=22)dot(a.x+ux*d,a.y+uy*d,'120,255,170',2.6,.55);}
+  c.globalCompositeOperation='source-over';
+}
+const lightsCv=document.createElement('canvas'),lctx=lightsCv.getContext('2d');
+const STARS=[...Array(110)].map(()=>({x:Math.random(),y:Math.random(),r:Math.random()*1.1+0.3,p:Math.random()*TAU}));
+function nightOverlay(c,ap,n,lights,T,w,h,k){ // k = pixel scale
+  if(n<=0.001)return;
+  c.save();c.setTransform(1,0,0,1,0,0);
+  c.globalCompositeOperation='multiply';c.globalAlpha=n*0.92;c.fillStyle=ap.theme.night;c.fillRect(0,0,w,h);
+  c.globalCompositeOperation='lighter';c.globalAlpha=n;if(lights)c.drawImage(lights,0,0);
+  c.globalCompositeOperation='source-over';c.fillStyle='#ffffff';
+  for(const st of STARS){c.globalAlpha=n*(0.18+0.22*Math.sin(T*1.3+st.p));ell(c,st.x*w,st.y*h,st.r*k,st.r*k);c.fill();}
+  c.restore();
+}
+function glowAt(c,x,y,r,rgb,a){if(a<=0.003)return;const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${rgb},${a})`);g.addColorStop(0.3,`rgba(${rgb},${a*0.7})`);g.addColorStop(1,`rgba(${rgb},0)`);c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);}
+function drawPlaneLights(c,p,T,n){
+  const a=n*p.alpha;if(a<=0.01)return;const sc=1+p.alt*0.35;
+  c.save();c.translate(p.x,p.y);c.rotate(p.heading);c.scale(sc,sc);
+  const bright=p.state==='landing'||p.state==='lineup'||p.state==='lineupWait'||(p.state==='takeoff'&&p.alt<0.75);
+  const taxi=p.state==='taxiIn'||p.state==='taxiOut';
+  if(bright||taxi){const L=bright?130:60,k=bright?0.34:0.2;const g=c.createRadialGradient(16,0,2,16,0,L);g.addColorStop(0,`rgba(255,244,214,${k*a})`);g.addColorStop(1,'rgba(255,244,214,0)');
+    c.fillStyle=g;c.beginPath();c.moveTo(16,0);c.arc(16,0,L,-0.3,0.3);c.closePath();c.fill();}
+  glowAt(c,-6.5,-16,6,'255,80,80',a);glowAt(c,-6.5,16,6,'90,255,150',a);glowAt(c,-19.5,0,4.5,'255,255,255',a*.8);
+  const parked=p.state==='parked'||p.state==='ready'||p.state==='waitTaxi';
+  if(!parked){const ph=(T*0.8+p.id*0.37)%1;if(ph<0.07||(ph>0.14&&ph<0.2)){glowAt(c,-6.5,-16,15,'255,255,255',a);glowAt(c,-6.5,16,15,'255,255,255',a);}}
+  if(p.state!=='parked'){const b=(T*1.05+p.id*0.21)%1;if(b<0.14)glowAt(c,-2,0,11,'255,70,70',a*0.85);}
+  c.restore();
+}
+
+/* ---------- game state ---------- */
+const cv=document.getElementById('game'),ctx=cv.getContext('2d');
+const staticCv=document.createElement('canvas'),sctx=staticCv.getContext('2d');
+let dpr=1,view=null,G=null,speedMul=1;
+const HOLD_R=46,HOLD_V=46,TAXI_V=30;
+
+function makeView(w,h,bb){
+  bb=bb||{x0:0,y0:0,x1:W,y1:H};const BW=bb.x1-bb.x0,BH=bb.y1-bb.y0;
+  const rot=h>w*1.15,small=w<640;
+  const padT=small?(rot?92:70):60,padB=small?62:62,padX=8;
+  const aw=w-padX*2,ah=h-padT-padB;let s,ox,oy;
+  if(!rot){s=Math.min(aw/BW,ah/BH);ox=padX+(aw-BW*s)/2;oy=padT+(ah-BH*s)/2;}
+  else{s=Math.min(aw/BH,ah/BW);ox=padX+(aw-BH*s)/2;oy=padT+(ah-BW*s)/2;}
+  const v={s,ox,oy,rot,w,h};
+  v.m=rot?[0,s,-s,0,ox+s*bb.y1,oy-s*bb.x0]:[s,0,0,s,ox-s*bb.x0,oy-s*bb.y0];
+  v.toScreen=(x,y)=>rot?{x:ox+s*(bb.y1-y),y:oy+s*(x-bb.x0)}:{x:ox+s*(x-bb.x0),y:oy+s*(y-bb.y0)};
+  v.toWorld=(sx,sy)=>rot?{x:bb.x0+(sy-oy)/s,y:bb.y1-(sx-ox)/s}:{x:bb.x0+(sx-ox)/s,y:bb.y0+(sy-oy)/s};
+  return v;
+}
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2.5);
+  const w=window.innerWidth,h=window.innerHeight;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);staticCv.width=cv.width;staticCv.height=cv.height;
+  view=makeView(w,h,G?G.ap.bbox:null);lightsCv.width=cv.width;lightsCv.height=cv.height;if(G){renderStatic(sctx,G.ap,view,dpr);renderLights(lctx,G.ap,view,dpr);}
+}
+
+function makeClouds(){const cl=[];for(let i=0;i<6;i++){const parts=[];const n=4+Math.floor(Math.random()*3);for(let j=0;j<n;j++)parts.push({dx:j*34-n*17+rand(-8,8),dy:rand(-14,14),r:rand(26,44)});cl.push({x:rand(-200,W+200),y:rand(40,H-40),v:rand(4,8),parts});}return cl;}
+
+function newGame(def,attract){
+  const ap=buildAirport(def);
+  G={ap,def,planes:[],t:0,nextSpawn:attract?3:9,score:{land:0,dep:0},sel:null,hover:null,preview:null,floaters:[],clouds:makeClouds(),nextId:1,attract,autopilot:attract,used:new Set(),
+     cap:ap.runways.length>1?9:6,minGap:Infinity};
+  const gates=ap.gates.filter(g=>g.type==='gate');
+  addParked(gates[1],attract?4:6);
+  if(ap.systems.length>1){const g2=gates.find(g=>g.sys===ap.systems[1]);if(g2)addParked(ap.gates[ap.gates.indexOf(g2)+1]||g2,16);}
+  for(const rw of ap.runways){const p=spawnArrival(rw);if(p)p.alpha=1;}
+  view=makeView(window.innerWidth,window.innerHeight,ap.bbox);applyTheme();renderStatic(sctx,ap,view,dpr);renderLights(lctx,ap,view,dpr);Radio.reset();updateScore(true);setHint();
+}
+function mkPlane(){
+  const al=pick(G.def.airlines);let num,k=0;do{num=100+Math.floor(Math.random()*800);k++;}while(G.used.has(al.c+num)&&k<50);G.used.add(al.c+num);
+  return{id:G.nextId++,code:al.c+' '+num,call:title(al.cs)+' '+sayNum(num),callT:title(al.cs)+' '+num,airline:al.n,color:al.col,x:0,y:0,heading:0,alt:0,alpha:1,speed:0,s:0,path:null,reverse:false,state:'',timer:0,born:G.t};
+}
+function addParked(g,t){if(!g)return;const p=mkPlane();p.state='parked';p.x=g.P.x;p.y=g.P.y;p.heading=g.park;p.gate=g;g.occupant=p;p.timer=t;p.timerMax=t+8;G.planes.push(p);}
+function spawnArrival(force){
+  let rws=G.ap.runways.filter(r=>r.holdUsed.some(u=>!u));if(force&&force.holdUsed)rws=rws.filter(r=>r===force);
+  if(!rws.length)return null;
+  const cnt=r=>r.holdUsed.filter(Boolean).length;const mn=Math.min(...rws.map(cnt));const rw=pick(rws.filter(r=>cnt(r)===mn));
+  const slot=rw.holdUsed[0]?1:0,other=rw.holdUsed[1-slot];
+  const p=mkPlane();p.state='holding';p.rw=rw;p.slot=slot;rw.holdUsed[slot]=p;p.ha=other?other.ha+Math.PI:rand(0,TAU);p.alt=1;p.alpha=0;p.speed=HOLD_V;
+  p.x=rw.holdC.x+Math.cos(p.ha)*HOLD_R;p.y=rw.holdC.y+Math.sin(p.ha)*HOLD_R;p.heading=p.ha+Math.PI/2;
+  G.planes.push(p);return p;
+}
+const GROUND=new Set(['waitTaxi','taxiIn','parked','ready','pushWait','pushback','pushedBack','taxiOut','holdShort','lineup','lineupWait']);
+const MOVERS=new Set(['taxiIn','pushback','taxiOut','lineup']);
+const isGround=p=>GROUND.has(p.state)||(p.state==='landing'&&p.touched);
+const isMover=p=>MOVERS.has(p.state)||(p.state==='landing'&&p.touched);
+
+function computeBlocked(){
+  const ground=G.planes.filter(isGround),movers=G.planes.filter(isMover);
+  for(const p of G.planes)if(!isMover(p))p.blockedBy=null;
+  for(const p of movers){let b=null;
+    for(let d=6;d<=72&&!b;d+=6){if(p.s+d>p.path.len+2)break;const q=p.path.at(p.s+d);
+      for(const o of ground){if(o===p)continue;if(Math.hypot(o.x-q.x,o.y-q.y)<32){b=o;break;}}}
+    if(!b&&p.state!=='pushback'&&p.state!=='lineup'){ // give way to a plane that is pushing back near our route
+      for(const o of movers){if(o===p||o.state!=='pushback')continue;
+        for(let d=0;d<=130&&!b;d+=10){if(p.s+d>p.path.len)break;const q=p.path.at(p.s+d);
+          for(let k=Math.floor(o.s/10)*10;k<=o.path.len;k+=10){const r=o.path.at(Math.min(k,o.path.len));if(Math.hypot(r.x-q.x,r.y-q.y)<42){b=o;break;}}}
+        if(b)break;}}
+    p.blockedBy=b;}
+  // mutual block: let the plane that is moving away from the other go first; otherwise lower id, if not too close
+  const away=(p,o)=>{if(p.s+8>p.path.len)return false;const q=p.path.at(p.s+8);return Math.hypot(o.x-q.x,o.y-q.y)>D(p,o)+2;};
+  const rel=[];
+  for(const p of movers){const o=p.blockedBy;if(!o||o.blockedBy!==p)continue;
+    const pa=away(p,o),oa=away(o,p);
+    if(pa&&!oa)rel.push(p);else if(!pa&&!oa&&p.id<o.id&&D(p,o)>40)rel.push(p);else if(pa&&oa&&p.id<o.id)rel.push(p);}
+  for(const p of rel)p.blockedBy=null;
+}
+function drive(p,dt,vmax,acc=12,dec=18){
+  const rem=p.path.len-p.s;let target=Math.min(vmax,Math.sqrt(2*dec*0.7*Math.max(0,rem))+3);
+  if(p.blockedBy){target=0;dec=36;}else if(p.held){target=0;dec=16;}
+  if(p.speed<target)p.speed=Math.min(target,p.speed+acc*dt);else p.speed=Math.max(target,p.speed-dec*dt);
+  p.s=Math.min(p.path.len,p.s+p.speed*dt);
+  const q=p.path.at(p.s);p.x=q.x;p.y=q.y;
+  p.heading=lerpAng(p.heading,q.a+(p.reverse?Math.PI:0),1-Math.exp(-dt*7));
+  return p.s>=p.path.len-0.05;
+}
+function startLanding(p){
+  p.rw.holdUsed[p.slot]=null;p.rw=p.landRw;const rw=p.rw,ex=p.exit;
+  const pts=[{x:p.x,y:p.y},Object.assign({},rw.apprStart,{r:130}),Object.assign({},rw.thr,{r:0}),Object.assign({},ex.E,{r:36}),{x:G.ap.nodes[ex.X].x,y:G.ap.nodes[ex.X].y}];
+  p.path=new Path(smoothPath(pts,30));p.s=0;p.state='landing';p.touched=false;
+  let best=1e9;p.path.p.forEach((q,i)=>{const d=D(q,rw.thr);if(d<best){best=d;p.sTouch=p.path.c[i];}});
+}
+function startLineup(p){const rw=p.depRw,Hn=G.ap.nodes[rw.H];p.path=new Path(smoothPath([{x:Hn.x,y:Hn.y},Object.assign({},rw.corner,{r:34}),rw.LU],30));p.s=0;p.speed=0;p.reverse=false;p.state='lineup';}
+function startTakeoff(p){const rw=p.depRw;Snd.whoosh(true);p.state='takeoff';p.path=new Path([rw.LU,rw.B,{x:rw.B.x+rw.dir.x*1000,y:rw.B.y+rw.dir.y*1000}]);p.s=0;p.speed=0;p.rollLen=D(rw.LU,rw.B);p.rotS=p.rollLen*0.55;}
+function pushClear(p){
+  const N=G.ap.nodes[p.gate.N],E2=p.push[p.push.length-1];
+  for(const o of G.planes){if(o===p||!isGround(o))continue;if(o.state==='parked'||o.state==='ready'||o.state==='pushWait')continue;
+    if(D(o,N)<90||D(o,E2)<70)return false;
+    for(const pp of p.push)if(D(o,pp)<50)return false;
+    if(isMover(o)){for(let d=0;d<=340;d+=10){if(o.s+d>o.path.len)break;const q=o.path.at(o.s+d);if(D(q,N)<40||D(q,E2)<45)return false;}}}
+  return true;
+}
+function addFloat(x,y,text){G.floaters.push({x,y,text,t:0});}
+function updatePlane(p,dt){
+  switch(p.state){
+  case 'holding':{p.alpha=Math.min(1,p.alpha+dt*0.6);const c=p.rw.holdC;p.ha+=dt*HOLD_V/HOLD_R;p.x=c.x+Math.cos(p.ha)*HOLD_R;p.y=c.y+Math.sin(p.ha)*HOLD_R;p.heading=p.ha+Math.PI/2;p.alt=1;
+    if(p.go&&p.alpha>=1){const tg=Math.atan2(p.landRw.apprStart.y-p.y,p.landRw.apprStart.x-p.x);if(Math.abs(angDiff(p.heading,tg))<0.2)startLanding(p);}break;}
+  case 'landing':{p.alt=clamp((p.sTouch-p.s)/330,0,1);
+    if(!p.wh&&p.alt<0.75){p.wh=1;Snd.whoosh(false);}
+    if(p.alt<=0&&!p.touched){p.touched=true;tower(p,'welcome to '+G.def.city+'. Vacate runway '+p.rw.name+' at the next exit and hold short');}
+    const rem=p.path.len-p.s,v=p.touched?clamp(rem*0.28,14,58):58;
+    if(drive(p,dt,v,10,14)){p.state='waitTaxi';p.waitSince=G.t;p.rw.lock=null;p.xNode=p.exit.X;p.rw.landings=(p.rw.landings||0)+1;p.speed=0;G.score.land++;updateScore();addFloat(p.x,p.y,'+1 landing');}break;}
+  case 'taxiIn':{if(drive(p,dt,TAXI_V)){p.state='parked';p.held=false;const h=p.gate.type==='hangar';p.timer=h?rand(20,28):rand(13,20);p.timerMax=p.timer;p.speed=0;}
+    if(p.exit&&p.s>60){p.exit.occupant=null;p.exit=null;}break;}
+  case 'parked':{p.timer-=dt;if(p.timer<=0){p.state='ready';p.readySince=G.t;tower(p,(p.gate.type==='hangar'?'maintenance complete in ':'boarding complete at ')+gateName(p.gate)+', standing by for pushback');if(p.exit){p.exit.occupant=null;p.exit=null;}}break;}
+  case 'pushWait':{if(pushClear(p)){if(p.pushWaited)tower(p,'traffic has passed, push back now');Snd.tug();p.state='pushback';p.path=new Path(p.push);p.s=0;p.speed=0;p.reverse=true;}else p.pushWaited=true;break;}
+  case 'pushback':{if(drive(p,dt,10,5,8)){p.state='pushedBack';p.gate.occupant=null;p.gate=null;p.speed=0;p.reverse=false;}break;}
+  case 'taxiOut':{if(drive(p,dt,TAXI_V)){p.state='holdShort';p.held=false;p.holdT=G.t;p.speed=0;}break;}
+  case 'lineup':{if(drive(p,dt,13,6,10)){p.state='lineupWait';p.timer=1.3;p.speed=0;}break;}
+  case 'lineupWait':{if(p.toClr){p.timer-=dt;if(p.timer<=0)startTakeoff(p);}break;}
+  case 'takeoff':{p.speed=Math.min(112,p.speed+dt*14);p.s+=p.speed*dt;const q=p.path.at(p.s);p.x=q.x;p.y=q.y;p.heading=lerpAng(p.heading,q.a,1-Math.exp(-dt*6));
+    p.alt=clamp((p.s-p.rotS)/420,0,1);
+    if(!p.scored&&p.s>p.rollLen){p.scored=true;p.depRw.lock=null;p.depRw.deps=(p.depRw.deps||0)+1;G.score.dep++;tower(p,'contact departure. Good day!');updateScore();addFloat(p.x,p.y,'+1 departure');}
+    if(p.x<-90||p.x>W+90||p.y<-90||p.y>H+90||p.s>=p.path.len)p.gone=true;
+    if(p.scored)p.alpha=clamp(1-(p.s-p.rollLen-250)/500,0,1);break;}
+  }
+}
+function update(dt){
+  G.t+=dt;
+  G.nextSpawn-=dt;
+  if(G.nextSpawn<=0){if(G.planes.length<G.cap&&spawnArrival())G.nextSpawn=rand(14,22);else G.nextSpawn=4;}
+  // a cleared arrival turns onto final only when its runway is free and an exit is free
+  for(const rw of G.ap.runways){if(rw.lock)continue;
+    const arr=G.planes.filter(p=>p.state==='holding'&&p.clearedLand&&!p.go&&p.landRw===rw).sort((a,b)=>a.clrT-b.clrT)[0];
+    if(arr){const ex=rw.exits.find(e=>!e.occupant);if(ex){arr.go=true;arr.exit=ex;ex.occupant=arr;rw.lock=arr;if(arr.queued)tower(arr,'you are number one. Runway '+rw.name+', wind calm, cleared to land');}}}
+  computeBlocked();
+  for(const p of G.planes)updatePlane(p,dt);
+  if(G.planes.some(p=>p.gone)){if(G.sel&&G.sel.gone){G.sel=null;setHint();}G.planes=G.planes.filter(p=>!p.gone);}
+  // safety metric for testing: minimum distance between ground planes
+  const gp=G.planes.filter(isGround);for(let i=0;i<gp.length;i++)for(let j=i+1;j<gp.length;j++){const d=D(gp[i],gp[j]);if(d<G.minGap){G.minGap=d;G.minGapInfo=[gp[i].state,gp[j].state,Math.round(gp[i].x),Math.round(gp[i].y),Math.round(gp[j].x),Math.round(gp[j].y),gp[i].blockedBy?gp[i].blockedBy.id:null,gp[j].blockedBy?gp[j].blockedBy.id:null,gp[i].id,gp[j].id,Math.round(gp[i].speed),Math.round(gp[j].speed),Math.round(gp[i].heading*57),Math.round(gp[j].heading*57)];}}
+  for(const f of G.floaters)f.t+=dt;G.floaters=G.floaters.filter(f=>f.t<2.4);
+  for(const c of G.clouds){c.x+=c.v*dt;if(c.x>W+260){c.x=-260;c.y=rand(40,H-40);}}
+  if(G.autopilot)autoPilot();
+  if(!G.attract){let n=0;for(const p of G.planes)if((p.state==='taxiIn'||p.state==='taxiOut'||p.state==='pushback'||p.state==='lineup')&&p.speed>2)n++;Snd.hum(Math.min(1,n/3));}else Snd.hum(0);
+}
+/* autopilot gives the same clearances a player would (used behind the start screen and in tests) */
+function autoPilot(){
+  for(const p of G.planes){
+    if(p.state!==p.apS){p.apS=p.state;p.apT=G.t;}
+    if(G.t-p.apT<1)continue;
+    if(p.state==='holding'&&!p.clearedLand){
+      const rws=G.ap.runways.filter(r=>!landBlock(r)&&!G.planes.some(o=>o.state==='holdShort'&&o.depRw===r));
+      const rw=rws.includes(p.rw)?p.rw:rws[0];if(rw)ACT.land(p,rw);}
+    else if(p.state==='waitTaxi'){const gs=validGates(p);if(gs.length)ACT.taxi(p,pick(gs));}
+    else if(p.state==='ready')ACT.push(p);
+    else if(p.state==='pushedBack'){const rs=validRunways(p);if(rs.length)ACT.taxiRw(p,pick(rs));}
+    else if(p.state==='holdShort'){if(!lineBlock(p.depRw))ACT.lineup(p);}
+    else if(p.state==='lineupWait'&&!p.toClr)ACT.takeoff(p);
+    else if(p.held)ACT.cont(p);
+  }
+}
+
+/* ---------- clearances ---------- */
+function isDepLock(rw){const l=rw.lock;return !!(l&&l.isDep);}
+function landBlock(rw){if(isDepLock(rw))return rw.lock.state==='takeoff'?'Runway busy: departure taking off':'Runway busy: departure lined up';return null;}
+function lineBlock(rw){
+  const l=rw.lock;
+  if(l){if(l.isDep)return l.state==='takeoff'?'Runway busy: departure taking off':'Runway busy: departure lining up';
+    if(l.state==='landing')return l.touched?'Runway busy: arrival still on the runway':'Runway busy: arrival on final';
+    return 'Runway busy: arrival cleared to land';}
+  if(G.planes.some(p=>p.state==='holding'&&p.clearedLand&&p.landRw===rw))return 'Runway busy: arrival cleared to land';
+  return null;}
+function taxiInPts(p,g){const r=findPath(G.ap,p.xNode,g.N);if(!r)return null;const pts=r.map(id=>({x:G.ap.nodes[id].x,y:G.ap.nodes[id].y}));pts.push({x:g.P.x,y:g.P.y});return smoothPath(pts,26);}
+function pushPts(p){const g=p.gate,N=G.ap.nodes[g.N],d=g.sys.dir;const pe={x:N.x+d.x*44,y:N.y+d.y*44};return smoothPath([{x:g.P.x,y:g.P.y},{x:N.x,y:N.y},pe],22);}
+function outPts(p,rw){const r=findPath(G.ap,p.pbN,rw.H);if(!r)return null;return smoothPath([{x:p.x,y:p.y},...r.map(id=>({x:G.ap.nodes[id].x,y:G.ap.nodes[id].y}))],28);}
+function validGates(p){return G.ap.gates.filter(g=>!g.occupant&&findPath(G.ap,p.xNode,g.N));}
+function validRunways(p){return G.ap.runways.filter(rw=>findPath(G.ap,p.pbN,rw.H));}
+function targetsOf(p){
+  if(!p)return[];
+  if(p.state==='waitTaxi')return validGates(p).map(g=>({kind:'gate',g}));
+  if(p.state==='holding'&&!p.clearedLand)return G.ap.runways.filter(rw=>!landBlock(rw)).map(rw=>({kind:'runway',rw}));
+  if(p.state==='pushedBack')return validRunways(p).map(rw=>({kind:'runway',rw}));
+  if(p.state==='holdShort'&&!lineBlock(p.depRw))return[{kind:'runway',rw:p.depRw}];
+  return[];}
+function isValid(p,t){if(!p||!t)return false;return targetsOf(p).some(q=>q.kind===t.kind&&(q.kind==='gate'?q.g===t.g:q.rw===t.rw));}
+function gateName(g){return (g.type==='hangar'?'hangar ':'gate ')+g.label;}
+function viaNames(ids){const out=[];for(const id of (ids||[])){const n=G.ap.nodes[id].twy;if(n&&out[out.length-1]!==n)out.push(n);}return out.join(', ')||'the apron';}
+const ACT={
+  land(p,rw){if(p.state!=='holding'||p.clearedLand)return false;const why=landBlock(rw);if(why){toast(why);return false;}
+    const ahead=G.planes.filter(o=>o!==p&&o.state==='holding'&&o.clearedLand&&!o.go&&o.landRw===rw).length+(rw.lock?1:0);
+    p.landRw=rw;p.clearedLand=true;p.clrT=G.t;
+    if(ahead>0||!rw.exits.some(e=>!e.occupant)){p.queued=true;tower(p,'number '+(ahead+1)+' for runway '+rw.name+'. Continue holding, I will call you in when the runway is clear');}
+    else tower(p,'runway '+rw.name+', wind calm, cleared to land');
+    return true;},
+  cancelLand(p){if(p.state!=='holding'||!p.clearedLand||p.go)return false;p.clearedLand=false;p.queued=false;p.landRw=null;tower(p,'continue holding, landing clearance cancelled. No rush');return true;},
+  taxi(p,g){if(p.state!=='waitTaxi'||g.occupant)return false;const pts=taxiInPts(p,g);if(!pts)return false;
+    p.gate=g;g.occupant=p;p.path=new Path(pts);p.s=0;p.speed=0;p.reverse=false;p.held=false;p.state='taxiIn';p.flash=G.t;
+    tower(p,'taxi to '+gateName(g)+' via '+viaNames(findPath(G.ap,p.xNode,g.N)));return true;},
+  push(p){if(p.state!=='ready')return false;p.push=pushPts(p);p.pbN=p.gate.N;p.isDep=true;p.pushWaited=false;
+    const clear=pushClear(p);tower(p,clear?'push back and start up approved':'push back approved after the traffic passing behind. Hold position for now');
+    p.state='pushWait';return true;},
+  taxiRw(p,rw){if(p.state!=='pushedBack')return false;const pts=outPts(p,rw);if(!pts)return false;
+    p.depRw=rw;p.path=new Path(pts);p.s=0;p.speed=0;p.reverse=false;p.held=false;p.state='taxiOut';p.flash=G.t;
+    tower(p,'taxi to holding point runway '+rw.name+' via '+viaNames(findPath(G.ap,p.pbN,rw.H))+'. Hold short runway '+rw.name);return true;},
+  lineup(p){if(p.state!=='holdShort')return false;const rw=p.depRw,why=lineBlock(rw);if(why){toast(why);return false;}
+    rw.lock=p;startLineup(p);tower(p,'runway '+rw.name+', line up and wait');return true;},
+  takeoff(p){if(!(p.state==='lineup'||p.state==='lineupWait')||p.toClr)return false;p.toClr=true;p.timer=1.3;
+    tower(p,'runway '+p.depRw.name+', wind calm, cleared for take-off');return true;},
+  hold(p){if(!(p.state==='taxiIn'||p.state==='taxiOut')||p.held)return false;p.held=true;tower(p,'hold position');return true;},
+  cont(p){if(!p.held)return false;p.held=false;
+    tower(p,p.state==='taxiIn'?'continue taxi to '+gateName(p.gate):'continue taxi to holding point runway '+p.depRw.name);return true;}
+};
+function doAct(p,name,arg){const ok=ACT[name]&&ACT[name](p,arg);if(ok){Snd.chime(1);G.preview=null;G.hoverKey=null;cardSig='';setHint();}return ok;}
+function previewPts(p,t){if(!isValid(p,t))return null;
+  if(t.kind==='gate')return taxiInPts(p,t.g);
+  if(p.state==='holding')return smoothPath([{x:p.x,y:p.y},Object.assign({},t.rw.apprStart,{r:120}),t.rw.thr],30);
+  if(p.state==='pushedBack')return outPts(p,t.rw);
+  if(p.state==='holdShort'){const Hn=G.ap.nodes[t.rw.H];return smoothPath([{x:Hn.x,y:Hn.y},Object.assign({},t.rw.corner,{r:34}),t.rw.LU],30);}
+  return null;}
+
+/* ---------- action card ---------- */
+function cardModel(p){
+  const btn=(label,act,arg,dis)=>({label,act,arg,dis});const city=G.def.city,g=p.gate?gateName(p.gate):'',rn=p.depRw?p.depRw.name:'';
+  switch(p.state){
+    case 'holding':
+      if(!p.clearedLand)return{status:'Holding gently near '+city+'. Waiting for your landing clearance.',btns:G.ap.runways.map(rw=>btn('Cleared to land · '+rw.name,'land',rw.id,landBlock(rw)))};
+      return{status:p.go?'Cleared to land runway '+p.landRw.name+'. Turning onto final.':'Cleared to land runway '+p.landRw.name+' after the traffic. Still holding.',btns:p.go?[]:[btn('Continue holding','cancelLand',null,null)]};
+    case 'landing':return{status:p.touched?'Rolling out on runway '+p.rw.name+'. It will vacate and stop.':'On final for runway '+p.rw.name+'.',btns:[]};
+    case 'waitTaxi':{const gs=validGates(p);return{status:gs.length?'Off the runway and stopped. Tap a glowing gate or hangar, or choose one:':'Off the runway and stopped. Every gate is busy, so push a ready plane back first.',btns:gs.slice(0,6).map(x=>btn('Taxi to '+gateName(x),'taxi',G.ap.gates.indexOf(x),null))};}
+    case 'taxiIn':return{status:(p.held?'Holding position on the way to ':'Taxiing to ')+g+(p.blockedBy&&!p.held?'. Waiting for traffic ahead.':'.'),btns:[p.held?btn('Continue taxi','cont'):btn('Hold position','hold')]};
+    case 'parked':return{status:(p.gate.type==='hangar'?'Resting in ':'Boarding at ')+g+'.',btns:[btn('Pushback','push',null,p.gate.type==='hangar'?'Maintenance in progress':'Boarding in progress')]};
+    case 'ready':return{status:(p.gate.type==='hangar'?'Maintenance':'Boarding')+' complete at '+g+'. Ready for pushback.',btns:[btn('Pushback','push')]};
+    case 'pushWait':return{status:'Pushback approved. Waiting for the taxiway behind to clear.',btns:[]};
+    case 'pushback':return{status:'Pushing back gently.',btns:[]};
+    case 'pushedBack':return{status:'Pushed back and stopped. Tap a glowing runway, or choose:',btns:validRunways(p).map(rw=>btn('Taxi to runway '+rw.name,'taxiRw',rw.id,null))};
+    case 'taxiOut':return{status:(p.held?'Holding position on the way to runway ':'Taxiing to runway ')+rn+(p.blockedBy&&!p.held?'. Waiting for traffic ahead.':'.'),btns:[p.held?btn('Continue taxi','cont'):btn('Hold position','hold')]};
+    case 'holdShort':return{status:'Holding short of runway '+rn+'.',btns:[btn('Line up and wait','lineup',null,lineBlock(p.depRw))]};
+    case 'lineup':return{status:'Lining up on runway '+rn+(p.toClr?'. Cleared for take-off.':'.'),btns:p.toClr?[]:[btn('Cleared for take-off','takeoff')]};
+    case 'lineupWait':return{status:p.toClr?'Cleared for take-off on runway '+rn+'.':'Lined up and waiting on runway '+rn+'.',btns:p.toClr?[]:[btn('Cleared for take-off','takeoff')]};
+    case 'takeoff':return{status:'Taking off from runway '+rn+'. Good day!',btns:[]};
+  }return{status:'',btns:[]};
+}
+let cardSig='',cardT=0;
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function updateCard(force){
+  const el=$('card');if(!G||G.attract||!G.sel){if(el.classList.contains('show')){el.classList.remove('show');document.body.classList.remove('hasCard');}cardSig='';return;}
+  const p=G.sel,m=cardModel(p);const sig=p.id+'|'+m.status+'|'+m.btns.map(b=>b.label+(b.dis||'')).join(',');
+  if(sig===cardSig&&!force)return;cardSig=sig;
+  el.innerHTML=`<div class="ch"><i style="background:${p.color}"></i><b>${esc(p.code)}</b><span>${esc(p.airline)} · ${esc(p.callT)}</span><button class="x" data-act="close" aria-label="Close">×</button></div>
+    <div class="cs">${esc(m.status)}</div>
+    <div class="cb">${m.btns.map(b=>`<button class="cbtn${b.dis?' dis':''}" data-act="${b.act}" data-arg="${b.arg==null?'':b.arg}" ${b.dis?'aria-disabled="true"':''}>${esc(b.label)}${b.dis?`<small>${esc(b.dis)}</small>`:''}</button>`).join('')}</div>`;
+  el.classList.add('show');document.body.classList.add('hasCard');
+}
+document.getElementById('card').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||!G||!G.sel)return;const a=b.dataset.act;
+  if(a==='close'){G.sel=null;G.preview=null;setHint();updateCard();return;}
+  if(b.classList.contains('dis')){toast(b.querySelector('small')?b.querySelector('small').textContent:'Not available just now');return;}
+  const p=G.sel;let arg=b.dataset.arg;
+  if(a==='land'||a==='taxiRw')arg=G.ap.runways.find(r=>r.id===arg);else if(a==='taxi')arg=G.ap.gates[+arg];
+  doAct(p,a,arg);updateCard(true);
+});
+
+/* ---------- input ---------- */
+function hitPlane(w){const r=Math.max(24,22/view.s);let best=null,bd=r;for(const p of G.planes){if(p.alpha<.5)continue;const d=D(p,w);if(d<bd){bd=d;best=p;}}return best;}
+function segDist(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy),0,1);return Math.hypot(p.x-a.x-dx*t,p.y-a.y-dy*t);}
+function hitTarget(w){const r=Math.max(30,20/view.s);
+  let best=null,bd=r;for(const g of G.ap.gates){const d=D(w,g.P);if(d<bd){bd=d;best={kind:'gate',g};}}if(best)return best;
+  for(const rw of G.ap.runways){if(segDist(w,rw.A,rw.B)<Math.max(26,18/view.s)||D(w,G.ap.nodes[rw.H])<r)return{kind:'runway',rw};}
+  return null;}
+function selectPlane(p){Snd.chime(0);G.sel=p;G.preview=null;G.hoverKey=null;setHint();updateCard(true);}
+function execTarget(p,t){
+  if(t.kind==='gate')return doAct(p,'taxi',t.g);
+  if(p.state==='holding')return doAct(p,'land',t.rw);
+  if(p.state==='pushedBack')return doAct(p,'taxiRw',t.rw);
+  if(p.state==='holdShort')return doAct(p,'lineup');
+  return false;}
+function onTap(sx,sy){
+  if(!G||G.attract)return;
+  const w=view.toWorld(sx,sy),plane=hitPlane(w),t=hitTarget(w);
+  if(plane&&plane===G.sel){updateCard(true);return;}
+  if(G.sel&&t&&isValid(G.sel,t)){execTarget(G.sel,t);updateCard(true);return;}
+  if(plane&&plane!==G.sel){selectPlane(plane);return;}
+  if(G.sel&&t&&!plane){const p=G.sel;let why='Use the card to give '+p.code+' its next clearance';
+    if(t.kind==='runway'&&p.state==='holding'&&!p.clearedLand)why=landBlock(t.rw)||why;
+    else if(t.kind==='runway'&&p.state==='holdShort')why=t.rw===p.depRw?(lineBlock(t.rw)||why):'This plane is holding short of runway '+p.depRw.name;
+    else if(t.kind==='gate'&&p.state==='waitTaxi')why='That '+t.g.type+' is taken — try a glowing one';
+    toast(why);return;}
+  if(G.sel&&!plane){G.sel=null;G.preview=null;setHint();updateCard();}
+}
+let hoverPt=null;
+cv.addEventListener('pointerdown',e=>{onTap(e.clientX,e.clientY);});
+cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')hoverPt={x:e.clientX,y:e.clientY};});
+cv.addEventListener('pointerleave',()=>{hoverPt=null;});
+function updateHover(){
+  if(!G||G.attract||!hoverPt){if(G){G.hover=null;G.hoverPlane=null;}cv.style.cursor='default';return;}
+  const w=view.toWorld(hoverPt.x,hoverPt.y);G.hoverPlane=hitPlane(w);
+  const t=G.sel?hitTarget(w):null;const key=t?(t.kind==='gate'?'g'+G.ap.gates.indexOf(t.g):'r'+t.rw.id)+'|'+G.sel.state:null;
+  if(key!==G.hoverKey){G.hoverKey=key;G.hover=t;G.preview=t&&G.sel?previewPts(G.sel,t):null;}
+  cv.style.cursor=G.hoverPlane||(t&&isValid(G.sel,t))?'pointer':'default';
+}
+
+/* ---------- HUD ---------- */
+const $=id=>document.getElementById(id);
+let toastT=0;
+function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2800);}
+function setHint(){
+  if(!G)return;let t='Tap a plane to give it a clearance';const p=G.sel;
+  if(p){const st=p.state;t=st==='waitTaxi'?'Tap a glowing gate or hangar for '+p.code+', or use the card':st==='holding'&&!p.clearedLand?'Choose a runway on the card for '+p.code+', or tap a glowing runway':st==='pushedBack'?'Tap a glowing runway for '+p.code+', or use the card':'Use the card to give '+p.code+' its next clearance';}
+  $('hintText').textContent=t;
+}
+let lastScore={land:-1,dep:-1};
+function updateScore(silent){
+  const s=G.score;const bump=(id,v)=>{const el=$(id);el.textContent=v;if(!silent){el.classList.add('bump');setTimeout(()=>el.classList.remove('bump'),350);}};
+  if(s.land!==lastScore.land)bump('sLand',s.land);if(s.dep!==lastScore.dep)bump('sDep',s.dep);
+  if(s.land!==lastScore.land||s.dep!==lastScore.dep)bump('sTot',s.land+s.dep);lastScore={land:s.land,dep:s.dep};
+}
+function applyTheme(){document.documentElement.style.setProperty('--accent',G.def.theme.accent);$('apTitle').textContent=G.def.name;document.body.style.background=G.def.theme.ground;}
+function showHUD(on){if(!on&&G){G.sel=null;}updateCard&&setTimeout(()=>updateCard(),0);for(const id of ['hud','hint','footer','log'])$(id).classList.toggle('hidden',!on);$('startNight').classList.toggle('hidden',on);if(!on){Radio.reset();Snd.hum(0);}}
+function syncToggles(){$('btnSound').classList.toggle('off',!S.sound);$('btnVoice').classList.toggle('off',!S.voice);document.body.classList.toggle('night',S.night);
+  $('btnSound').setAttribute('aria-pressed',S.sound);$('btnVoice').setAttribute('aria-pressed',S.voice);
+  for(const id of ['btnNight','startNight'])$(id).title=S.night?'Switch to day':'Switch to night';}
+function toggleNight(){S.night=!S.night;store.set('calmSkies.night',S.night);syncToggles();renderThumbs();}
+$('btnNight').addEventListener('click',toggleNight);$('startNight').addEventListener('click',toggleNight);
+$('btnSound').addEventListener('click',()=>{S.sound=!S.sound;store.set('calmSkies.sound',S.sound);Snd.init();Snd.setOn(S.sound);syncToggles();toast(S.sound?'Sound on — soft and quiet':'Sound off');});
+$('btnVoice').addEventListener('click',()=>{S.voice=!S.voice;store.set('calmSkies.voice',S.voice);if(!S.voice)Radio.voiceOff();syncToggles();toast(S.voice?'Tower voice on':'Tower voice off — captions stay on');});
+function fade(fn){const f=$('fade');f.style.opacity=1;setTimeout(()=>{fn();requestAnimationFrame(()=>{f.style.opacity=0;});},460);}
+function startAirport(def){fade(()=>{newGame(def,false);$('start').classList.add('hidden');showHUD(true);});}
+$('btnRestart').addEventListener('click',()=>fade(()=>{newGame(G.def,false);toast('A fresh, calm start at '+G.def.name);}));
+$('btnMenu').addEventListener('click',()=>fade(()=>{showHUD(false);$('start').classList.remove('hidden');newGame(G.def,true);}));
+
+/* ---------- render ---------- */
+function drawDotted(pts,col,alpha,width){if(!pts||pts.length<2)return;ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=col;ctx.lineWidth=width;ctx.lineCap='round';ctx.setLineDash([0.1,9]);ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(const q of pts)ctx.lineTo(q.x,q.y);ctx.stroke();ctx.restore();}
+function remaining(p){const out=[{x:p.x,y:p.y}];for(let i=0;i<p.path.p.length;i++)if(p.path.c[i]>p.s)out.push(p.path.p[i]);return out;}
+function pill(x,y,text,dot,strong){
+  ctx.font=`600 ${12*dpr}px ${FONT}`;const tw=ctx.measureText(text).width,w=tw+(dot?30:20)*dpr,h=23*dpr;
+  ctx.save();ctx.shadowColor='rgba(30,40,60,.18)';ctx.shadowBlur=10*dpr;ctx.shadowOffsetY=3*dpr;rr(ctx,x-w/2,y-h/2,w,h,h/2);ctx.fillStyle=strong?'rgba(255,255,255,.97)':'rgba(255,255,255,.88)';ctx.fill();ctx.restore();
+  if(dot){ctx.fillStyle=dot;ell(ctx,x-w/2+13*dpr,y,4*dpr,4*dpr);ctx.fill();}
+  ctx.fillStyle='#1f2530';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(text,x-w/2+(dot?22:10)*dpr,y+0.5*dpr);
+}
+function render(now){
+  const th=G.ap.theme,T=now/1000,s=view.s;
+  ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(staticCv,0,0);
+  const n=nightT;nightOverlay(ctx,G.ap,n,lightsCv,T,cv.width,cv.height,dpr);
+  ctx.setTransform(dpr*view.m[0],dpr*view.m[1],dpr*view.m[2],dpr*view.m[3],dpr*view.m[4],dpr*view.m[5]);
+  // valid targets
+  if(G.sel){const p=G.sel,pulse=0.55+0.45*Math.sin(T*3);
+    for(const t of targetsOf(p)){
+      if(t.kind==='gate'){const g=t.g,hv=G.hover&&G.hover.g===g;ctx.fillStyle=th.accent;ctx.globalAlpha=hv?.32:.14+.08*pulse;ell(ctx,g.P.x,g.P.y,27,27);ctx.fill();ctx.globalAlpha=hv?1:.55;ctx.strokeStyle=th.accent;ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1;}
+      else{const rw=t.rw,hv=G.hover&&G.hover.rw===rw;ctx.strokeStyle=th.accent;ctx.lineCap='round';ctx.globalAlpha=hv?.35:.14+.1*pulse;ctx.lineWidth=46;ctx.beginPath();ctx.moveTo(rw.A.x,rw.A.y);ctx.lineTo(rw.B.x,rw.B.y);ctx.stroke();ctx.globalAlpha=1;
+        const Hn=G.ap.nodes[rw.H];ctx.lineWidth=2;ctx.globalAlpha=.7;ell(ctx,Hn.x,Hn.y,18,18);ctx.stroke();ctx.globalAlpha=1;}}
+  }
+  // routes
+  for(const p of G.planes){if((p.state==='taxiIn'||p.state==='taxiOut'||p.state==='pushback')&&p.path){drawDotted(remaining(p),th.accent,p.flash&&G.t-p.flash<4?.75:.38,3);} }
+  if(G.sel&&G.preview)drawDotted([{x:G.sel.x,y:G.sel.y},...G.preview],th.accent,.95,3.6);
+  // glows
+  for(const p of G.planes){
+    if(p.state==='ready'){const a=0.5+0.5*Math.sin(T*2.2+p.id);const gr=ctx.createRadialGradient(p.x,p.y,4,p.x,p.y,36);gr.addColorStop(0,th.accent2+'aa');gr.addColorStop(1,th.accent2+'00');ctx.globalAlpha=0.55+0.45*a;ctx.fillStyle=gr;ell(ctx,p.x,p.y,36,36);ctx.fill();ctx.globalAlpha=1;}
+    if(p.state==='waitTaxi'||p.state==='pushedBack'||p.state==='holdShort'||(p.state==='lineupWait'&&!p.toClr)||(p.state==='holding'&&!p.clearedLand&&p.alpha>=1)){const f=(T*0.6+p.id*0.3)%1;ctx.strokeStyle=th.accent;ctx.lineWidth=2;ctx.globalAlpha=(1-f)*0.6;ell(ctx,p.x,p.y,18+f*18,18+f*18);ctx.stroke();ctx.globalAlpha=1;}
+    if(p.state==='parked'&&p.timerMax){const pr=1-p.timer/p.timerMax;ctx.strokeStyle='rgba(40,50,65,.12)';ctx.lineWidth=2.5;ell(ctx,p.x,p.y,24,24);ctx.stroke();ctx.strokeStyle=th.accent2;ctx.globalAlpha=.8;ctx.beginPath();ctx.arc(p.x,p.y,24,-Math.PI/2,-Math.PI/2+TAU*pr);ctx.stroke();ctx.globalAlpha=1;}
+  }
+  if(G.sel){const p=G.sel,k=0.5+0.5*Math.sin(T*3.5);ctx.fillStyle=th.accent;ctx.globalAlpha=.16;ell(ctx,p.x,p.y,26+k*2,26+k*2);ctx.fill();ctx.globalAlpha=.95;ctx.strokeStyle=th.accent;ctx.lineWidth=2.6;ell(ctx,p.x,p.y,26+k*2,26+k*2);ctx.stroke();ctx.globalAlpha=1;}
+  // cloud shadows
+  if(n<0.95)for(const c of G.clouds){ctx.fillStyle=`rgba(30,40,60,${0.022*(1-n)})`;for(const q of c.parts){ell(ctx,c.x+q.dx+70,c.y+q.dy+90,q.r,q.r*.8);ctx.fill();}}
+  // planes: ground first, then airborne by altitude
+  const ps=G.planes.slice().sort((a,b)=>a.alt-b.alt);
+  for(const p of ps){const sc=1+p.alt*0.35;drawShadow(ctx,p.x+1.5+p.alt*34,p.y+2.5+p.alt*44,p.heading,1,(0.17-p.alt*0.07)*p.alpha*(1-0.6*n));drawPlane(ctx,p.x,p.y,p.heading,p.color,sc,p.alpha);}
+  if(n>0.01){ctx.save();ctx.globalCompositeOperation='lighter';for(const p of ps)drawPlaneLights(ctx,p,T,n);ctx.restore();}
+  // lahore kites
+  if(G.def.decor==='lahore'){const ks=[[230,170,'#d9a441'],[1480,420,'#c6704f'],[1250,690,'#5f9d70'],[560,690,'#d68fa0']];for(const [i,k] of ks.entries()){const x=k[0]+Math.sin(T*0.5+i)*14,y=k[1]+Math.cos(T*0.7+i*2)*8;ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(T*0.8+i)*0.25);ctx.fillStyle=k[2];ctx.globalAlpha=.85;ctx.beginPath();ctx.moveTo(0,-11);ctx.lineTo(8,0);ctx.lineTo(0,11);ctx.lineTo(-8,0);ctx.closePath();ctx.fill();ctx.strokeStyle='rgba(60,40,30,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,11);ctx.quadraticCurveTo(6,22,0,34);ctx.stroke();ctx.restore();}}
+  // clouds
+  for(const c of G.clouds){for(const q of c.parts){const gr=ctx.createRadialGradient(c.x+q.dx,c.y+q.dy,q.r*.2,c.x+q.dx,c.y+q.dy,q.r);gr.addColorStop(0,`rgba(255,255,255,${0.5*(1-0.7*n)})`);gr.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=gr;ell(ctx,c.x+q.dx,c.y+q.dy,q.r,q.r*.8);ctx.fill();}}
+  // screen-space labels
+  ctx.setTransform(1,0,0,1,0,0);
+  if(!G.attract){for(const p of G.planes){
+    const tags={waitTaxi:'Landed',ready:'Ready',pushedBack:'Pushed back',holdShort:'Holding short',lineupWait:p.toClr?null:'Lined up'};if(p.state==='holding'&&!p.clearedLand)tags.holding='Holding';
+    const show=p===G.sel||p===G.hoverPlane||!!tags[p.state];if(!show||p.alpha<.6)continue;
+    const q=view.toScreen(p.x,p.y);const tag=tags[p.state]||null;
+    pill(q.x*dpr,(q.y-32*Math.max(.8,s*1.1))*dpr,p.code+(tag?' · '+tag:''),p.color,p===G.sel);}}
+  for(const f of G.floaters){const q=view.toScreen(f.x,f.y);const a=f.t<0.3?f.t/0.3:1-clamp((f.t-1.4)/1,0,1);ctx.globalAlpha=a;ctx.font=`700 ${14*dpr}px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillText(f.text,q.x*dpr+1*dpr,(q.y-20-f.t*22)*dpr+1*dpr);ctx.fillStyle=th.accent;ctx.fillText(f.text,q.x*dpr,(q.y-20-f.t*22)*dpr);ctx.globalAlpha=1;}
+}
+let last=performance.now();
+function frame(now){
+  const rdt=Math.min(0.05,(now-last)/1000);let dt=rdt*speedMul;last=now;
+  nightT+=clamp((S.night?1:0)-nightT,-rdt/1.1,rdt/1.1);
+  if(G){while(dt>0){const h=Math.min(dt,0.05);update(h);dt-=h;}updateHover();if(now-cardT>200){cardT=now;updateCard();}render(now);}
+  requestAnimationFrame(frame);
+}
+
+/* ---------- start screen ---------- */
+const thumbs=[];
+function renderThumbs(){
+  const v={s:0.4,m:[0.4,0,0,0.4,0,0],toScreen:(x,y)=>({x:x*0.4,y:y*0.4})};
+  for(const {c,def} of thumbs){const ap=buildAirport(def),al=def.airlines,cx=c.getContext('2d');
+    renderStatic(cx,ap,v,1,{noLabels:true,planes:[[1,al[0].col],[3,al[1].col],[ap.gates.length-2,al[2].col]]});
+    if(S.night){const lc=document.createElement('canvas');lc.width=c.width;lc.height=c.height;renderLights(lc.getContext('2d'),ap,v,1);nightOverlay(cx,ap,1,lc,0,c.width,c.height,1);}}
+}
+function buildCards(){
+  const wrap=$('cards');
+  AIRPORTS.forEach((def,i)=>{
+    const card=document.createElement('div');card.className='card glass';card.tabIndex=0;card.setAttribute('role','button');card.dataset.key=def.key;card.style.setProperty('--c',def.theme.accent);
+    const c=document.createElement('canvas');c.width=640;c.height=400;thumbs.push({c,def});
+    card.appendChild(c);
+    card.insertAdjacentHTML('beforeend',`<h3>${def.name}</h3><div class="tag">${def.tag}</div><p>${def.desc}</p><div class="sw">${[def.theme.accent,def.theme.accent2,def.theme.ground,def.theme.roof,def.theme.water].map(x=>`<i style="background:${x}"></i>`).join('')}</div>`);
+    const go=()=>startAirport(def);card.addEventListener('click',go);card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')go();});
+    wrap.appendChild(card);
+  });
+}
+window.addEventListener('resize',resize);
+syncToggles();resize();buildCards();renderThumbs();newGame(AIRPORTS[0],true);requestAnimationFrame(frame);
+
+/* ---------- small debug hook (used for automated testing) ---------- */
+window.calmSkies={
+  get G(){return G;},AIRPORTS,
+  setSpeed(m){speedMul=m;},
+  sim(seconds){const n=Math.round(seconds/0.05);for(let i=0;i<n;i++)update(0.05);},
+  screenOf(x,y){return view.toScreen(x,y);},
+  planes(){return G.planes.map(p=>({id:p.id,code:p.code,state:p.state,x:p.x,y:p.y,sx:view.toScreen(p.x,p.y).x,sy:view.toScreen(p.x,p.y).y}));},
+  validTargets(id){const p=G.planes.find(q=>q.id===id);if(!p)return[];
+    return targetsOf(p).map(t=>{if(t.kind==='gate')return{label:t.g.label,...view.toScreen(t.g.P.x,t.g.P.y)};const rw=t.rw,m={x:(rw.A.x*0.4+rw.B.x*0.6),y:(rw.A.y*0.4+rw.B.y*0.6)};return{label:rw.name,...view.toScreen(m.x,m.y)};});},
+  plane(id){const p=G.planes.find(q=>q.id===id);return p?{state:p.state,speed:p.speed,held:!!p.held,toClr:!!p.toClr,cleared:!!p.clearedLand,rw:p.depRw?p.depRw.name:p.rw?p.rw.name:null,x:p.x,y:p.y}:null;},
+  act(id,name,arg){const p=G.planes.find(q=>q.id===id);if(!p)return false;if(name==='land'||name==='taxiRw')arg=G.ap.runways.find(r=>r.name===arg||r.id===arg);if(name==='taxi')arg=G.ap.gates.find(g=>g.label===arg)||validGates(p)[0];return !!ACT[name](p,arg);},
+  spawn(name){const rw=G.ap.runways.find(r=>r.name===name);const p=spawnArrival(rw);if(p)p.alpha=1;return p?p.id:null;},
+  cardInfo(){const el=document.getElementById('card');return{show:el.classList.contains('show'),btns:[...el.querySelectorAll('.cbtn')].map(b=>({text:b.textContent,dis:b.classList.contains('dis')}))};},
+  blocks(){return G.ap.runways.map(r=>({name:r.name,land:landBlock(r),line:lineBlock(r)}));},
+  setAutopilot(on){G.autopilot=on;},
+  runwayStats(){return G.ap.runways.map(r=>({name:r.name,land:r.landings||0,dep:r.deps||0}));},
+  radioLog(){return Radio.log.slice();},
+  radioAll(){return Radio.log.concat(Radio.q.map(m=>m.text));},
+  setNight(on){if(!!on!==S.night)toggleNight();nightT=on?1:0;},
+  audioState(){return{ctx:!!Snd.ctx,state:Snd.ctx&&Snd.ctx.state,speech:speechOK};}
+};
+})();
+</script>
+</body>
+</html>
