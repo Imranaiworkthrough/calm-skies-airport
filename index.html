@@ -536,10 +536,10 @@ const Radio={q:[],cur:null,log:[],hideT:0,
       this.play(m);return;}
     clearTimeout(this.hideT);this.hideT=setTimeout(()=>$('caption').classList.remove('show'),1400);},
   play(m){this.cur=m;m.halted=false;if(!m.logged)this.addLog(m);clearTimeout(this.hideT);$('capText').textContent=m.text;$('caption').classList.add('show');
-    let done=false;const fin=()=>{if(done||m.halted)return;done=true;clearTimeout(m.timer);setTimeout(()=>{if(this.cur===m){this.cur=null;this.pump();}},500);};
-    const readMs=1700+m.text.length*48;
+    let done=false;const fin=()=>{if(done||m.halted)return;done=true;clearTimeout(m.timer);setTimeout(()=>{if(this.cur===m){this.cur=null;this.pump();}},1100);};
+    const readMs=2200+m.text.length*52;
     if(S.voice&&speechOK){m.timer=setTimeout(fin,readMs+7000);
-      try{const u=new SpeechSynthesisUtterance(m.spoken);u.rate=0.9;u.pitch=0.97;u.volume=0.85;u.lang='en-GB';if(towerVoice)u.voice=towerVoice;
+      try{const u=new SpeechSynthesisUtterance(m.spoken);u.rate=0.86;u.pitch=0.97;u.volume=0.85;u.lang='en-GB';if(towerVoice)u.voice=towerVoice;
         u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);}catch(e){clearTimeout(m.timer);m.timer=setTimeout(fin,readMs);}}
     else m.timer=setTimeout(fin,readMs);},
   addLog(m){if(m.logged)return;m.logged=true;this.log.push(m.text);if(this.log.length>40)this.log.shift();
@@ -611,7 +611,9 @@ function drawPlaneLights(c,p,T,n){
 const cv=document.getElementById('game'),ctx=cv.getContext('2d');
 const staticCv=document.createElement('canvas'),sctx=staticCv.getContext('2d');
 let dpr=1,view=null,G=null,speedMul=1;
-const HOLD_R=46,HOLD_V=46,TAXI_V=30;
+const HOLD_R=46,HOLD_V=24,TAXI_V=14,APP_V=28,APP_CRUISE_V=38,PUSH_V=5,LINE_V=6.5,TO_VMAX=70;
+/* calm pacing: one new request at a time, long gaps, alternating arrivals and departures */
+const PACE={first:[4,6],second:[32,40],gap:[25,45],rest:[14,20],retry:3,maxActive:3,maxWaiting:2,boardMin:[28,40],attractGap:[9,14]};
 
 function makeView(w,h,bb){
   bb=bb||{x0:0,y0:0,x1:W,y1:H};const BW=bb.x1-bb.x0,BH=bb.y1-bb.y0;
@@ -637,12 +639,12 @@ function makeClouds(){const cl=[];for(let i=0;i<6;i++){const parts=[];const n=4+
 
 function newGame(def,attract){
   const ap=buildAirport(def);
-  G={ap,def,planes:[],t:0,nextSpawn:attract?3:9,score:{land:0,dep:0},sel:null,hover:null,preview:null,floaters:[],clouds:makeClouds(),nextId:1,attract,autopilot:attract,used:new Set(),
-     cap:ap.runways.length>1?9:6,minGap:Infinity};
+  G={ap,def,planes:[],t:0,nextReq:attract?3:rand(PACE.first[0],PACE.first[1]),nextKind:'arr',reqN:0,spawnLog:[],maxActive:0,maxWaiting:0,maxLandWait:0,maxDepWait:0,score:{land:0,dep:0},sel:null,hover:null,preview:null,floaters:[],clouds:makeClouds(),nextId:1,attract,autopilot:attract,used:new Set(),
+     cap:ap.runways.length>1?7:5,minGap:Infinity};
   const gates=ap.gates.filter(g=>g.type==='gate');
   addParked(gates[1],attract?4:6);
   if(ap.systems.length>1){const g2=gates.find(g=>g.sys===ap.systems[1]);if(g2)addParked(ap.gates[ap.gates.indexOf(g2)+1]||g2,16);}
-  for(const rw of ap.runways){const p=spawnArrival(rw);if(p)p.alpha=1;}
+  if(attract){const p=spawnArrival(ap.runways[0]);if(p)p.alpha=1;}
   view=makeView(window.innerWidth,window.innerHeight,ap.bbox);applyTheme();renderStatic(sctx,ap,view,dpr);renderLights(lctx,ap,view,dpr);Radio.reset();updateScore(true);setHint();
 }
 function mkPlane(){
@@ -717,27 +719,60 @@ function updatePlane(p,dt){
   case 'landing':{p.alt=clamp((p.sTouch-p.s)/330,0,1);
     if(!p.wh&&p.alt<0.75){p.wh=1;Snd.whoosh(false);}
     if(p.alt<=0&&!p.touched){p.touched=true;tower(p,'welcome to '+G.def.city+'. Vacate runway '+p.rw.name+' at the next exit and hold short');}
-    const rem=p.path.len-p.s,v=p.touched?clamp(rem*0.28,14,58):58;
-    if(drive(p,dt,v,10,14)){p.state='waitTaxi';p.waitSince=G.t;p.rw.lock=null;p.xNode=p.exit.X;p.rw.landings=(p.rw.landings||0)+1;p.speed=0;G.score.land++;updateScore();addFloat(p.x,p.y,'+1 landing');}break;}
-  case 'taxiIn':{if(drive(p,dt,TAXI_V)){p.state='parked';p.held=false;const h=p.gate.type==='hangar';p.timer=h?rand(20,28):rand(13,20);p.timerMax=p.timer;p.speed=0;}
+    const rem=p.path.len-p.s,toGo=p.sTouch-p.s,v=p.touched?clamp(rem*0.22,8,APP_V):(toGo>520?APP_CRUISE_V:APP_V); // cruise in from the hold, then a slow, gentle final
+    if(drive(p,dt,v,7,10)){p.state='waitTaxi';p.waitSince=G.t;restAfter();p.rw.lock=null;p.xNode=p.exit.X;p.rw.landings=(p.rw.landings||0)+1;p.speed=0;G.score.land++;updateScore();addFloat(p.x,p.y,'+1 landing');}break;}
+  case 'taxiIn':{if(drive(p,dt,TAXI_V)){p.state='parked';p.held=false;const h=p.gate.type==='hangar';p.timer=h?rand(PACE.boardMin[0]+8,PACE.boardMin[1]+8):rand(PACE.boardMin[0],PACE.boardMin[1]);p.timerMax=p.timer;p.speed=0;}
     if(p.exit&&p.s>60){p.exit.occupant=null;p.exit=null;}break;}
-  case 'parked':{p.timer-=dt;if(p.timer<=0){p.state='ready';p.readySince=G.t;tower(p,(p.gate.type==='hangar'?'maintenance complete in ':'boarding complete at ')+gateName(p.gate)+', standing by for pushback');if(p.exit){p.exit.occupant=null;p.exit=null;}}break;}
+  case 'parked':{p.timer=Math.max(0,p.timer-dt);break;} // the request scheduler decides when a boarded plane calls for pushback
   case 'pushWait':{if(pushClear(p)){if(p.pushWaited)tower(p,'traffic has passed, push back now');Snd.tug();p.state='pushback';p.path=new Path(p.push);p.s=0;p.speed=0;p.reverse=true;}else p.pushWaited=true;break;}
-  case 'pushback':{if(drive(p,dt,10,5,8)){p.state='pushedBack';p.gate.occupant=null;p.gate=null;p.speed=0;p.reverse=false;}break;}
+  case 'pushback':{if(drive(p,dt,PUSH_V,3,5)){p.state='pushedBack';p.gate.occupant=null;p.gate=null;p.speed=0;p.reverse=false;}break;}
   case 'taxiOut':{if(drive(p,dt,TAXI_V)){p.state='holdShort';p.held=false;p.holdT=G.t;p.speed=0;}break;}
-  case 'lineup':{if(drive(p,dt,13,6,10)){p.state='lineupWait';p.timer=1.3;p.speed=0;}break;}
+  case 'lineup':{if(drive(p,dt,LINE_V,4,7)){p.state='lineupWait';p.timer=1.3;p.speed=0;}break;}
   case 'lineupWait':{if(p.toClr){p.timer-=dt;if(p.timer<=0)startTakeoff(p);}break;}
-  case 'takeoff':{p.speed=Math.min(112,p.speed+dt*14);p.s+=p.speed*dt;const q=p.path.at(p.s);p.x=q.x;p.y=q.y;p.heading=lerpAng(p.heading,q.a,1-Math.exp(-dt*6));
+  case 'takeoff':{p.speed=Math.min(TO_VMAX,p.speed+dt*8);p.s+=p.speed*dt;const q=p.path.at(p.s);p.x=q.x;p.y=q.y;p.heading=lerpAng(p.heading,q.a,1-Math.exp(-dt*6));
     p.alt=clamp((p.s-p.rotS)/420,0,1);
-    if(!p.scored&&p.s>p.rollLen){p.scored=true;p.depRw.lock=null;p.depRw.deps=(p.depRw.deps||0)+1;G.score.dep++;tower(p,'contact departure. Good day!');updateScore();addFloat(p.x,p.y,'+1 departure');}
+    if(!p.scored&&p.s>p.rollLen){p.scored=true;restAfter();p.depRw.lock=null;p.depRw.deps=(p.depRw.deps||0)+1;G.score.dep++;tower(p,'contact departure. Good day!');updateScore();addFloat(p.x,p.y,'+1 departure');}
     if(p.x<-90||p.x>W+90||p.y<-90||p.y>H+90||p.s>=p.path.len)p.gone=true;
     if(p.scored)p.alpha=clamp(1-(p.s-p.rollLen-250)/500,0,1);break;}
   }
 }
+/* ---------- calm request scheduler ---------- */
+const ARR_WAIT=p=>p.state==='holding'&&!p.clearedLand;
+const DEP_FLOW=new Set(['ready','pushWait','pushback','pushedBack','taxiOut','holdShort','lineup','lineupWait']);
+const isDepFlow=p=>DEP_FLOW.has(p.state)||(p.state==='takeoff'&&!p.scored);
+function isWaiting(p){ // planes that are waiting for the player to do something
+  return ARR_WAIT(p)||p.state==='waitTaxi'||p.state==='ready'||p.state==='pushedBack'||p.state==='holdShort'||(p.state==='lineupWait'&&!p.toClr)||!!p.held;}
+function trafficStats(){let active=0,waiting=0,landWait=0,depWait=0,arr=0,dep=0;
+  for(const p of G.planes){if(p.state!=='parked'&&!(p.state==='takeoff'&&p.scored))active++;if(isWaiting(p))waiting++;if(ARR_WAIT(p))landWait++;
+    if(p.state==='ready'||p.state==='pushedBack'||p.state==='holdShort'||(p.state==='lineupWait'&&!p.toClr))depWait++;
+    if(p.state==='holding'||p.state==='landing')arr++;if(isDepFlow(p))dep++;}
+  return{active,waiting,landWait,depWait,arr,dep};}
+function restAfter(){G.nextReq=Math.max(G.nextReq,rand(PACE.rest[0],PACE.rest[1]));}
+function boardedPlane(){const ps=G.planes.filter(p=>p.state==='parked'&&p.timer<=0);return ps.length?pick(ps):null;}
+function requestDeparture(p){p.state='ready';p.readySince=G.t;tower(p,(p.gate.type==='hangar'?'maintenance complete in ':'boarding complete at ')+gateName(p.gate)+', standing by for pushback');if(p.exit){p.exit.occupant=null;p.exit=null;}return p;}
+function scheduleRequests(dt){
+  const st=trafficStats();
+  G.maxActive=Math.max(G.maxActive,st.active);G.maxWaiting=Math.max(G.maxWaiting,st.waiting);G.maxLandWait=Math.max(G.maxLandWait,st.landWait);G.maxDepWait=Math.max(G.maxDepWait,st.depWait);
+  G.nextReq-=dt;if(G.nextReq>0)return;
+  const canArr=()=>st.arr===0&&G.planes.length<G.cap&&G.ap.gates.some(g=>!g.occupant);
+  const canDep=()=>st.dep===0&&!!boardedPlane();
+  let made=null,kind=null;
+  if(st.active<PACE.maxActive&&st.waiting<PACE.maxWaiting){
+    const parked=G.planes.filter(p=>p.state==='parked').length,free=G.ap.gates.filter(g=>!g.occupant).length;
+    let order=G.nextKind==='arr'?['arr','dep']:['dep','arr'];
+    if(free<=2)order=['dep','arr']; // keep a few gates free so arrivals always have somewhere to go
+    if(!parked)order=['arr','dep'];
+    for(const k of order){
+      if(k==='arr'&&canArr()){made=spawnArrival();if(made){kind='arr';break;}}
+      if(k==='dep'&&canDep()){made=requestDeparture(boardedPlane());kind='dep';break;}}}
+  if(made){G.reqN++;G.spawnLog.push({t:+G.t.toFixed(1),kind,code:made.code});if(G.spawnLog.length>200)G.spawnLog.shift();
+    G.nextKind=kind==='arr'?'dep':'arr';
+    const gap=G.attract?PACE.attractGap:(G.reqN===1?PACE.second:PACE.gap);G.nextReq=rand(gap[0],gap[1]);}
+  else G.nextReq=PACE.retry; // not a good moment yet: look again in a few seconds
+}
 function update(dt){
   G.t+=dt;
-  G.nextSpawn-=dt;
-  if(G.nextSpawn<=0){if(G.planes.length<G.cap&&spawnArrival())G.nextSpawn=rand(14,22);else G.nextSpawn=4;}
+  scheduleRequests(dt);
   // a cleared arrival turns onto final only when its runway is free and an exit is free
   for(const rw of G.ap.runways){if(rw.lock)continue;
     const arr=G.planes.filter(p=>p.state==='holding'&&p.clearedLand&&!p.go&&p.landRw===rw).sort((a,b)=>a.clrT-b.clrT)[0];
@@ -772,7 +807,10 @@ function autoPilot(){
 /* ---------- clearances ---------- */
 function isDepLock(rw){const l=rw.lock;return !!(l&&l.isDep);}
 function landBlock(rw){if(isDepLock(rw))return rw.lock.state==='takeoff'?'Runway busy: departure taking off':'Runway busy: departure lined up';return null;}
+function arrActive(){return G.planes.some(o=>o.state==='holding'||o.state==='landing');}
+function depActive(){return G.planes.find(o=>o.state==='lineup'||o.state==='lineupWait'||(o.state==='takeoff'&&!o.scored));}
 function lineBlock(rw){
+  const dA=depActive();if(dA)return 'One take-off at a time: wait for '+dA.code+' to leave the runway';
   const l=rw.lock;
   if(l){if(l.isDep)return l.state==='takeoff'?'Runway busy: departure taking off':'Runway busy: departure lining up';
     if(l.state==='landing')return l.touched?'Runway busy: arrival still on the runway':'Runway busy: arrival on final';
@@ -837,7 +875,7 @@ function cardModel(p){
     case 'landing':return{status:p.touched?'Rolling out on runway '+p.rw.name+'. It will vacate and stop.':'On final for runway '+p.rw.name+'.',btns:[]};
     case 'waitTaxi':{const gs=validGates(p);return{status:gs.length?'Off the runway and stopped. Tap a glowing gate or hangar, or choose one:':'Off the runway and stopped. Every gate is busy, so push a ready plane back first.',btns:gs.slice(0,6).map(x=>btn('Taxi to '+gateName(x),'taxi',G.ap.gates.indexOf(x),null))};}
     case 'taxiIn':return{status:(p.held?'Holding position on the way to ':'Taxiing to ')+g+(p.blockedBy&&!p.held?'. Waiting for traffic ahead.':'.'),btns:[p.held?btn('Continue taxi','cont'):btn('Hold position','hold')]};
-    case 'parked':return{status:(p.gate.type==='hangar'?'Resting in ':'Boarding at ')+g+'.',btns:[btn('Pushback','push',null,p.gate.type==='hangar'?'Maintenance in progress':'Boarding in progress')]};
+    case 'parked':return{status:(p.gate.type==='hangar'?'Resting in ':'Boarding at ')+g+'.',btns:[btn('Pushback','push',null,p.timer<=0?'Final checks. The crew will call you when ready':(p.gate.type==='hangar'?'Maintenance in progress':'Boarding in progress'))]};
     case 'ready':return{status:(p.gate.type==='hangar'?'Maintenance':'Boarding')+' complete at '+g+'. Ready for pushback.',btns:[btn('Pushback','push')]};
     case 'pushWait':return{status:'Pushback approved. Waiting for the taxiway behind to clear.',btns:[]};
     case 'pushback':return{status:'Pushing back gently.',btns:[]};
@@ -1046,6 +1084,7 @@ window.calmSkies={
   setAutopilot(on){G.autopilot=on;},
   runwayStats(){return G.ap.runways.map(r=>({name:r.name,land:r.landings||0,dep:r.deps||0}));},
   radioLog(){return Radio.log.slice();},
+  pace(){return{PACE,spawnLog:G.spawnLog.slice(),nextReq:G.nextReq,nextKind:G.nextKind,maxActive:G.maxActive,maxWaiting:G.maxWaiting,maxLandWait:G.maxLandWait,maxDepWait:G.maxDepWait,now:trafficStats()};},
   radioAll(){return Radio.log.concat(Radio.q.map(m=>m.text));},
   setNight(on){if(!!on!==S.night)toggleNight();nightT=on?1:0;},
   pause(on){setPaused(on);return PAUSED;},isPaused(){return PAUSED;},
