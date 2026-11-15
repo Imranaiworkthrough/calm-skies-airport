@@ -2,22 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#eef1f4">
 <title>Calm Skies — Airport Manager</title>
 <meta name="description" content="Calm Skies — a relaxing, airport manager demo game. Fictional demo. Not affiliated with any airline or airport. Demo game — made for an AI Workthrough video.">
 <style>
 :root{--accent:#26a69a;--ink:#1f2530;--glass:rgba(255,255,255,.66)}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;background:#eef1f4;color:var(--ink);
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:manipulation;background:#eef1f4;color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   -webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+button{touch-action:manipulation}
 .glass{background:var(--glass);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);
   border:1px solid rgba(255,255,255,.75);box-shadow:0 10px 30px rgba(30,40,60,.10),0 1px 2px rgba(30,40,60,.06)}
 .pill{border-radius:999px;padding:9px 16px;font-size:14px;line-height:1.2}
 .fadeable{transition:opacity .5s ease}
 .hidden{opacity:0!important;pointer-events:none!important}
-#hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;z-index:5}
+#hud{position:fixed;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;z-index:5}
 #hud>*{pointer-events:auto}
 #apName{display:flex;align-items:center;gap:8px;font-weight:650;white-space:nowrap}
 #apName .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 20%,transparent)}
@@ -40,7 +44,7 @@ button.soft:active{transform:scale(.97)}
   white-space:nowrap;font-weight:500;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #fade{position:fixed;inset:0;background:#f5f6f8;opacity:0;pointer-events:none;transition:opacity .45s ease;z-index:30}
-#start{position:fixed;inset:0;z-index:10;overflow:auto;background:linear-gradient(160deg,rgba(248,249,251,.80),rgba(236,241,246,.72));
+#start{position:fixed;inset:0;z-index:10;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:linear-gradient(160deg,rgba(248,249,251,.80),rgba(236,241,246,.72));
   backdrop-filter:blur(26px) saturate(1.3);-webkit-backdrop-filter:blur(26px) saturate(1.3);transition:opacity .5s ease;touch-action:pan-y}
 .startInner{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 20px 28px;max-width:1180px;margin:0 auto}
 .logo{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(145deg,#ffffff,#e9eef4);box-shadow:0 8px 24px rgba(30,40,60,.12)}
@@ -58,7 +62,7 @@ h1{font-size:40px;letter-spacing:-.02em;margin:14px 0 4px;font-weight:700}
 .how{margin-top:24px;border-radius:18px;padding:12px 20px;display:flex;gap:22px;flex-wrap:wrap;justify-content:center;font-size:13.5px;color:rgba(31,37,48,.75)}
 .how span b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#1f2530;color:#fff;font-size:11px;margin-right:7px}
 .note{margin:18px 0 0;font-size:12.5px;color:rgba(31,37,48,.55);text-align:center}
-#caption{position:fixed;left:50%;top:64px;transform:translate(-50%,-6px);opacity:0;transition:opacity .45s ease,transform .45s ease;z-index:6;pointer-events:none;
+#caption{position:fixed;left:50%;top:calc(var(--hudB,52px) + 10px);transform:translate(-50%,-6px);opacity:0;transition:opacity .45s ease,transform .45s ease;z-index:6;pointer-events:none;
   max-width:min(760px,calc(100vw - 24px));display:flex;gap:10px;align-items:center;font-weight:560;border-radius:18px}
 #caption.show{opacity:1;transform:translate(-50%,0)}
 .twr{font-size:10px;font-weight:750;letter-spacing:.08em;color:#fff;background:var(--accent);border-radius:6px;padding:3px 6px;flex:none}
@@ -111,17 +115,95 @@ body.night .logo{background:linear-gradient(145deg,#2d3558,#1c2240)} body.night 
 body.night button.soft:hover{background:rgba(52,60,96,.85)}
 body.night .how span b{background:#e8ecf6;color:#1c2240}
 body.night #fade{background:#121831}
-@media (max-width:980px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:640px){
-  .pill{font-size:12px;padding:7px 11px} button.soft{font-size:12px;padding:7px 11px}
-  #apName small{display:none} #score{gap:8px} #score div{font-size:11px} #score b{font-size:14px;margin-left:4px}
-  #hud{flex-wrap:wrap;justify-content:center} #hint{bottom:30px;font-size:12px} #footer{font-size:10.5px}
-  h1{font-size:30px} .cards{gap:12px} .card h3{font-size:15px} .card p{display:none}
-  button.icon{width:32px;height:32px} button.icon svg{width:16px;height:16px}
-  #caption{top:112px;font-size:12px} #toast{bottom:150px}
-  #card{left:8px;right:8px;width:auto;bottom:62px;padding:10px 12px} body.hasCard #log{display:none}
-  #log{left:8px;right:8px;width:auto;bottom:62px;padding:6px 10px;font-size:11px} #log h4{display:none} #log .row:nth-last-child(n+3){display:none}
+/* ---------- zoom controls ---------- */
+#zoom{position:fixed;right:max(12px,env(safe-area-inset-right));top:calc(var(--hudB,52px) + 12px);z-index:5;display:flex;flex-direction:column;gap:8px}
+#zoom button{width:44px;height:44px;font-size:22px;font-weight:500;line-height:1}
+#zoom button svg{width:20px;height:20px}
+#zoom .zl{font-size:10.5px;font-weight:700;text-align:center;border-radius:10px;padding:3px 0;font-variant-numeric:tabular-nums;color:rgba(31,37,48,.62)}
+body.night #zoom .zl{color:rgba(232,236,246,.66)}
+#zoom.atFit #zFit{opacity:.45}
+#btnRestart .ic,#btnMenu .ic{display:none}
+#btnMenu .ic svg{width:18px;height:18px;display:block}
+#score .ls{display:none}
+#hint,#log,#footer{margin-bottom:env(safe-area-inset-bottom)}
+#card{margin-bottom:env(safe-area-inset-bottom)}
+#card .x{min-width:36px;min-height:36px}
+#toast{z-index:9}
+/* touch screens: comfortable 44px tap targets */
+@media (pointer:coarse){
+  button.icon{width:44px;height:44px}
+  button.soft{min-height:44px}
+  .cbtn{min-height:44px;padding:10px 14px;font-size:14px}
+  #card .x{min-width:44px;min-height:44px;font-size:22px}
+  .card{min-height:44px}
 }
+@media (max-width:980px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* tablets and narrow desktop windows */
+@media (min-width:641px) and (max-width:1100px){
+  #apName small{display:none}
+  #btnRestart .lbl,#btnMenu .lbl{display:none} #btnRestart .ic,#btnMenu .ic{display:block}
+  #btnRestart,#btnMenu{width:44px;height:44px;padding:0;display:grid;place-items:center;font-size:20px}
+  #hint{left:auto;right:12px;transform:none;max-width:calc(100vw - 390px)}
+  body.hasCard #hint{opacity:0;pointer-events:none}
+}
+/* phones in portrait (and narrow windows) */
+@media (max-width:640px){
+  .pill{font-size:12.5px;padding:8px 12px} button.soft{font-size:13px;padding:8px 12px}
+  #apName{min-width:0;flex:0 1 auto;overflow:hidden} #apName #apTitle{overflow:hidden;text-overflow:ellipsis}
+  #apName small{display:none} #score{gap:8px} #score div{font-size:11.5px} #score b{font-size:14.5px;margin-left:4px}
+  #score .lf{display:none} #score .ls{display:inline}
+  #hud{flex-wrap:wrap;justify-content:center;row-gap:8px}
+  #hud .btns{width:100%;justify-content:center;gap:6px}
+  #hud .btns button{width:44px;height:44px;padding:0;display:grid;place-items:center;font-size:20px}
+  #btnRestart .lbl,#btnMenu .lbl{display:none} #btnRestart .ic,#btnMenu .ic{display:block}
+  #hint{bottom:calc(30px + env(safe-area-inset-bottom));font-size:12px;margin-bottom:0} #footer{font-size:10.5px}
+  h1{font-size:30px} .cards{gap:12px} .card{padding:8px} .card h3{font-size:15px;margin-top:9px} .card p{display:none} .card .tag{font-size:11.5px}
+  .startInner{justify-content:flex-start;padding:max(56px,calc(env(safe-area-inset-top) + 44px)) 14px calc(24px + env(safe-area-inset-bottom))}
+  .sub{margin-bottom:18px;font-size:14.5px}
+  .how{flex-direction:column;gap:8px;padding:12px 14px;font-size:13px;align-items:flex-start}
+  #zoom{top:50%;transform:translateY(-50%);right:max(8px,env(safe-area-inset-right))}
+  /* clearance card becomes a bottom sheet */
+  #card{left:0;right:0;bottom:0;width:auto;max-width:none;border-radius:20px 20px 0 0;padding:10px 14px calc(14px + env(safe-area-inset-bottom));margin:0;
+    max-height:55vh;max-height:55dvh;overflow:auto;transform:translateY(24px)}
+  #card::before{content:"";display:block;width:38px;height:4px;border-radius:2px;background:rgba(31,37,48,.18);margin:0 auto 6px}
+  body.night #card::before{background:rgba(232,236,246,.25)}
+  #card .cb{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #card .cbtn{text-align:center}
+  body.hasCard #log,body.hasCard #hint,body.hasCard #footer{opacity:0;pointer-events:none}
+  #log{left:8px;right:8px;width:auto;bottom:calc(64px + env(safe-area-inset-bottom));margin:0;padding:6px 10px;font-size:11.5px} #log h4{display:none} #log .row:nth-last-child(n+3){display:none}
+  #toast{bottom:calc(150px + env(safe-area-inset-bottom));font-size:12.5px;white-space:normal;text-align:center;border-radius:16px}
+  #caption{font-size:12.5px;line-height:1.35;white-space:normal}
+}
+/* phones in landscape (short screens) */
+@media (max-height:520px) and (min-width:560px){
+  .pill{font-size:12.5px;padding:7px 12px} button.soft{font-size:13px;padding:7px 12px}
+  #hud{top:max(8px,env(safe-area-inset-top))}
+  #apName small{display:none} #score{gap:8px} #score div{font-size:11.5px} #score b{font-size:14.5px;margin-left:4px}
+  #score .lf{display:none} #score .ls{display:inline}
+  #hud .btns{gap:6px} #hud .btns button{width:44px;height:44px;padding:0;display:grid;place-items:center;font-size:20px}
+  #btnRestart .lbl,#btnMenu .lbl{display:none} #btnRestart .ic,#btnMenu .ic{display:block}
+  #zoom{left:max(8px,env(safe-area-inset-left));right:auto;top:calc(var(--hudB,52px) + 8px);gap:6px}
+  #zoom .zl{display:none}
+  #card{top:calc(var(--hudB,52px) + 8px);bottom:auto;right:max(8px,env(safe-area-inset-right));width:300px;max-height:calc(100vh - var(--hudB,52px) - 16px);max-height:calc(100dvh - var(--hudB,52px) - 16px);overflow:auto;padding:10px 12px;margin:0}
+  #card .cs{margin:5px 0 8px}
+  #log{left:max(60px,calc(env(safe-area-inset-left) + 60px));width:300px;bottom:calc(8px + env(safe-area-inset-bottom));margin:0;padding:6px 10px;font-size:11.5px} #log h4{display:none} #log .row:nth-last-child(n+3){display:none}
+  #hint{bottom:calc(8px + env(safe-area-inset-bottom));left:auto;right:max(12px,env(safe-area-inset-right));transform:none;max-width:calc(100vw - 400px);font-size:12px;margin:0}
+  body.hasCard #hint{opacity:0;pointer-events:none}
+  #footer{bottom:auto;top:calc(var(--hudB,52px) + 2px);font-size:10px}
+  #toast{bottom:calc(54px + env(safe-area-inset-bottom));left:auto;right:max(12px,env(safe-area-inset-right));transform:translateY(8px);font-size:12.5px;max-width:calc(100vw - 420px);white-space:normal}
+  #toast.show{transform:none}
+  #caption{font-size:12.5px;top:calc(var(--hudB,52px) + 18px);left:max(66px,calc(env(safe-area-inset-left) + 66px));transform:translateY(-6px);max-width:min(620px,calc(100vw - 140px));white-space:normal}
+  #caption.show{transform:none}
+  body.hasCard #caption{max-width:calc(100vw - 66px - 330px)}
+  /* start screen fits a short screen */
+  .startInner{justify-content:flex-start;padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 18px max(16px,env(safe-area-inset-left))}
+  .logo{display:none} h1{font-size:24px;margin:2px 0 2px} .sub{margin:0 0 10px;font-size:13.5px}
+  .cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px} .card{padding:7px;border-radius:16px} .card canvas{border-radius:10px}
+  .card h3{font-size:14px;margin:7px 4px 1px} .card .tag{font-size:11px;margin:0 4px 3px} .card p{display:none} .sw{display:none}
+  .how{margin-top:12px;padding:9px 14px;gap:14px;font-size:12.5px} .note{margin-top:10px;font-size:11.5px}
+  #pauseOv .box{padding:16px 24px} #pauseOv h2{font-size:24px} #pauseOv p{margin-bottom:12px}
+}
+@media (max-width:380px){ #score div{font-size:11px} #score{gap:6px} #hud .btns{gap:4px} }
 </style>
 </head>
 <body>
@@ -130,8 +212,8 @@ body.night #fade{background:#121831}
 <div id="hud" class="fadeable hidden">
   <div id="apName" class="glass pill"><span class="dot"></span><span id="apTitle">Dubai</span><small>· Calm Skies</small></div>
   <div id="score" class="glass pill">
-    <div>Landings<b id="sLand">0</b></div><i class="sep"></i>
-    <div>Departures<b id="sDep">0</b></div><i class="sep"></i>
+    <div><span class="lf">Landings</span><span class="ls">Land</span><b id="sLand">0</b></div><i class="sep"></i>
+    <div><span class="lf">Departures</span><span class="ls">Dep</span><b id="sDep">0</b></div><i class="sep"></i>
     <div class="tot">Total<b id="sTot">0</b></div>
   </div>
   <div class="btns">
@@ -139,9 +221,15 @@ body.night #fade{background:#121831}
     <button id="btnSound" class="glass soft icon" title="Sound on/off" aria-label="Sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" fill="currentColor" stroke="none"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="slash" d="M3 3l18 18"/></svg></button>
     <button id="btnVoice" class="glass soft icon" title="Tower voice on/off" aria-label="Tower voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 16h-8l-4.5 3.5V16H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z"/><path d="M8 9.5h8M8 12.5h5"/><path class="slash" d="M3 3l18 18"/></svg></button>
     <button id="btnNight" class="glass soft icon" title="Day / night" aria-label="Day or night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g><path class="moon" d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
-    <button id="btnRestart" class="glass soft" title="Start this airport fresh">↺ Restart</button>
-    <button id="btnMenu" class="glass soft" title="Choose another airport">Airports</button>
+    <button id="btnRestart" class="glass soft" title="Start this airport fresh" aria-label="Restart"><span class="ic">↺</span><span class="lbl">↺ Restart</span></button>
+    <button id="btnMenu" class="glass soft" title="Choose another airport" aria-label="Airports"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></svg></span><span class="lbl">Airports</span></button>
   </div>
+</div>
+<div id="zoom" class="fadeable hidden atFit" aria-label="Map zoom">
+  <button id="zIn" class="glass soft icon" title="Zoom in (+)" aria-label="Zoom in">+</button>
+  <button id="zOut" class="glass soft icon" title="Zoom out (−)" aria-label="Zoom out">−</button>
+  <button id="zFit" class="glass soft icon" title="Fit the whole airport (0)" aria-label="Fit whole airport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></svg></button>
+  <div id="zLevel" class="zl glass">1.0×</div>
 </div>
 <div id="hint" class="glass pill fadeable hidden"><span class="k"></span><span id="hintText">Tap a plane, then tap where it should go</span></div>
 <div id="footer" class="fadeable hidden">Demo game — made for an AI Workthrough video.</div>
@@ -516,6 +604,13 @@ const Snd={ctx:null,master:null,humG:null,
       o.connect(g);g.connect(this.master);o.start(t0);o.stop(t0+1);});}catch(e){}}
 };
 ['pointerdown','keydown','touchstart'].forEach(ev=>window.addEventListener(ev,()=>Snd.init(),{passive:true}));
+/* mobile unlock: iOS/Android only allow audio + speech after a real gesture (touchend/click count on iOS) */
+let audioUnlocked=false;
+function unlockAudio(){Snd.init();const c=Snd.ctx;if(!c)return;
+  if(c.state!=='running')c.resume().catch(()=>{});
+  if(!audioUnlocked){try{const b=c.createBuffer(1,1,22050),src=c.createBufferSource();src.buffer=b;src.connect(c.destination);src.start(0);audioUnlocked=true;}catch(e){}}
+  unlockSpeech();}
+['touchend','click','pointerup','keydown'].forEach(ev=>window.addEventListener(ev,unlockAudio,{passive:true,capture:true}));
 
 /* ---------- tower radio: caption, transcript, optional speech ---------- */
 const speechOK=(()=>{try{return 'speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='undefined';}catch(e){return false;}})();
@@ -523,6 +618,9 @@ let towerVoice=null;
 function pickVoice(){if(!speechOK)return;try{const vs=speechSynthesis.getVoices()||[];const pref=['Google UK English Female','Samantha','Daniel','Microsoft Libby','Microsoft Sonia','Microsoft Aria','Karen','Moira','Serena'];
   towerVoice=vs.find(v=>pref.some(n=>v.name.includes(n)))||vs.find(v=>/^en(-|_)GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null;}catch(e){}}
 if(speechOK){try{pickVoice();speechSynthesis.addEventListener('voiceschanged',pickVoice);}catch(e){}}
+let speechUnlocked=false;
+function unlockSpeech(){if(speechUnlocked||!speechOK)return;speechUnlocked=true; // prime the speech engine inside the user gesture
+  try{if(speechSynthesis.paused)speechSynthesis.resume();if(!speechSynthesis.speaking){const u=new SpeechSynthesisUtterance(' ');u.volume=0;u.rate=2;speechSynthesis.speak(u);}if(!towerVoice)pickVoice();}catch(e){}}
 const Radio={q:[],cur:null,log:[],hideT:0,
   say(text,spoken){if(!G||G.attract)return;this.q.push({text,spoken,t:performance.now()});this.pump();},
   pause(){const m=this.cur;if(m){clearTimeout(m.timer);m.halted=true;this.cur=null;m.t=performance.now();this.q.unshift(m);} // replay the interrupted call on resume
@@ -615,10 +713,12 @@ const HOLD_R=46,HOLD_V=24,TAXI_V=14,APP_V=28,APP_CRUISE_V=38,PUSH_V=5,LINE_V=6.5
 /* calm pacing: one new request at a time, long gaps, alternating arrivals and departures */
 const PACE={first:[4,6],second:[32,40],gap:[25,45],rest:[14,20],retry:3,maxActive:3,maxWaiting:2,boardMin:[28,40],attractGap:[9,14]};
 
+function hudBottom(){const el=document.getElementById('hud');if(!el)return 52;const r=el.getBoundingClientRect();return r.height?r.bottom:52;}
 function makeView(w,h,bb){
   bb=bb||{x0:0,y0:0,x1:W,y1:H};const BW=bb.x1-bb.x0,BH=bb.y1-bb.y0;
-  const rot=h>w*1.15,small=w<640;
-  const padT=small?(rot?92:70):60,padB=small?62:62,padX=8;
+  const rot=h>w*1.15,small=w<640,short=h<=520;
+  const hb=hudBottom();document.documentElement.style.setProperty('--hudB',Math.round(hb)+'px');
+  const padT=Math.max(small?(rot?92:70):60,hb+(short?4:8)),padB=short?30:62,padX=short?56:8;
   const aw=w-padX*2,ah=h-padT-padB;let s,ox,oy;
   if(!rot){s=Math.min(aw/BW,ah/BH);ox=padX+(aw-BW*s)/2;oy=padT+(ah-BH*s)/2;}
   else{s=Math.min(aw/BH,ah/BW);ox=padX+(aw-BH*s)/2;oy=padT+(ah-BW*s)/2;}
@@ -626,13 +726,51 @@ function makeView(w,h,bb){
   v.m=rot?[0,s,-s,0,ox+s*bb.y1,oy-s*bb.x0]:[s,0,0,s,ox-s*bb.x0,oy-s*bb.y0];
   v.toScreen=(x,y)=>rot?{x:ox+s*(bb.y1-y),y:oy+s*(x-bb.x0)}:{x:ox+s*(x-bb.x0),y:oy+s*(y-bb.y0)};
   v.toWorld=(sx,sy)=>rot?{x:bb.x0+(sy-oy)/s,y:bb.y1-(sx-ox)/s}:{x:bb.x0+(sx-ox)/s,y:bb.y0+(sy-oy)/s};
+  const a=v.toScreen(bb.x0,bb.y0),b=v.toScreen(bb.x1,bb.y1);
+  v.rect={x0:Math.min(a.x,b.x),y0:Math.min(a.y,b.y),x1:Math.max(a.x,b.x),y1:Math.max(a.y,b.y)};
   return v;
 }
+/* ---------- camera: pinch / drag / wheel zoom layered on top of the fitted view ---------- */
+const CAM={z:1,tx:0,ty:0,min:1,max:3,goal:null};
+let baseView=null,camDirty=false;
+function composeView(b){
+  const z=CAM.z,tx=CAM.tx,ty=CAM.ty;
+  const v={s:b.s*z,rot:b.rot,w:b.w,h:b.h,base:b,z,rect:b.rect};
+  v.m=[b.m[0]*z,b.m[1]*z,b.m[2]*z,b.m[3]*z,b.m[4]*z+tx,b.m[5]*z+ty];
+  v.toScreen=(x,y)=>{const q=b.toScreen(x,y);return{x:q.x*z+tx,y:q.y*z+ty};};
+  v.toWorld=(sx,sy)=>b.toWorld((sx-tx)/z,(sy-ty)/z);
+  return v;
+}
+function clampCamTo(c){const b=baseView;c.z=clamp(c.z,CAM.min,CAM.max);if(!b)return c;const R=b.rect,z=c.z;
+  // the zoomed map always covers the fitted map area, so you can never pan the airport off-screen
+  // small slack so a corner hidden under the clearance card / bottom sheet can still be dragged into view
+  const sx=Math.min(b.w*0.3,300),sy=Math.min(b.h*0.25,240);
+  c.tx=clamp(c.tx,R.x1-z*R.x1-sx,R.x0-z*R.x0+sx);c.ty=clamp(c.ty,R.y1-z*R.y1-sy,R.y0-z*R.y0+sy);return c;}
+function applyCam(){clampCamTo(CAM);if(baseView){view=composeView(baseView);camDirty=true;}
+  const zl=document.getElementById('zLevel');if(zl)zl.textContent=CAM.z.toFixed(1)+'×';
+  const zb=document.getElementById('zoom');if(zb)zb.classList.toggle('atFit',CAM.z<1.01&&Math.abs(CAM.tx)<1&&Math.abs(CAM.ty)<1);}
+function camAt(nz,ax,ay,from){from=from||CAM;nz=clamp(nz,CAM.min,CAM.max);const z=from.z;
+  return clampCamTo({z:nz,tx:ax-(ax-from.tx)*nz/z,ty:ay-(ay-from.ty)*nz/z});}
+function zoomAt(nz,ax,ay){CAM.goal=null;const c=camAt(nz,ax,ay);CAM.z=c.z;CAM.tx=c.tx;CAM.ty=c.ty;applyCam();}
+function mapCentre(){const R=baseView?baseView.rect:{x0:0,y0:0,x1:innerWidth,y1:innerHeight};
+  const x0=Math.max(R.x0,0),x1=Math.min(R.x1,innerWidth),y0=Math.max(R.y0,0),y1=Math.min(R.y1,innerHeight);return{x:(x0+x1)/2,y:(y0+y1)/2};}
+function zoomBy(f){const c=mapCentre(),from=CAM.goal||CAM;CAM.goal=camAt(from.z*f,c.x,c.y,from);}
+function zoomFit(){CAM.goal={z:1,tx:0,ty:0};}
+function resetCam(){CAM.z=1;CAM.tx=0;CAM.ty=0;CAM.goal=null;applyCam();}
+function stepCam(rdt){const g=CAM.goal;if(!g)return;const k=1-Math.exp(-rdt*13);
+  CAM.z+=(g.z-CAM.z)*k;CAM.tx+=(g.tx-CAM.tx)*k;CAM.ty+=(g.ty-CAM.ty)*k;
+  if(Math.abs(g.z-CAM.z)<0.002&&Math.abs(g.tx-CAM.tx)<0.4&&Math.abs(g.ty-CAM.ty)<0.4){CAM.z=g.z;CAM.tx=g.tx;CAM.ty=g.ty;CAM.goal=null;}
+  applyCam();}
 function resize(){
   dpr=Math.min(window.devicePixelRatio||1,2.5);
   const w=window.innerWidth,h=window.innerHeight;
   cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);staticCv.width=cv.width;staticCv.height=cv.height;
-  view=makeView(w,h,G?G.ap.bbox:null);lightsCv.width=cv.width;lightsCv.height=cv.height;if(G){renderStatic(sctx,G.ap,view,dpr);renderLights(lctx,G.ap,view,dpr);}
+  // keep the same spot centred (and the same zoom) through rotation / resize
+  const old=view,oc=old&&baseView?old.toWorld(old.w/2,old.h/2):null;
+  baseView=makeView(w,h,G?G.ap.bbox:null);
+  if(oc&&CAM.z>1.001){const q=baseView.toScreen(oc.x,oc.y);CAM.tx=w/2-q.x*CAM.z;CAM.ty=h/2-q.y*CAM.z;}else{CAM.tx=0;CAM.ty=0;}
+  CAM.goal=null;applyCam();camDirty=false;
+  lightsCv.width=cv.width;lightsCv.height=cv.height;if(G){renderStatic(sctx,G.ap,view,dpr);renderLights(lctx,G.ap,view,dpr);}
 }
 
 function makeClouds(){const cl=[];for(let i=0;i<6;i++){const parts=[];const n=4+Math.floor(Math.random()*3);for(let j=0;j<n;j++)parts.push({dx:j*34-n*17+rand(-8,8),dy:rand(-14,14),r:rand(26,44)});cl.push({x:rand(-200,W+200),y:rand(40,H-40),v:rand(4,8),parts});}return cl;}
@@ -645,7 +783,7 @@ function newGame(def,attract){
   addParked(gates[1],attract?4:6);
   if(ap.systems.length>1){const g2=gates.find(g=>g.sys===ap.systems[1]);if(g2)addParked(ap.gates[ap.gates.indexOf(g2)+1]||g2,16);}
   if(attract){const p=spawnArrival(ap.runways[0]);if(p)p.alpha=1;}
-  view=makeView(window.innerWidth,window.innerHeight,ap.bbox);applyTheme();renderStatic(sctx,ap,view,dpr);renderLights(lctx,ap,view,dpr);Radio.reset();updateScore(true);setHint();
+  baseView=makeView(window.innerWidth,window.innerHeight,ap.bbox);resetCam();camDirty=false;applyTheme();renderStatic(sctx,ap,view,dpr);renderLights(lctx,ap,view,dpr);Radio.reset();updateScore(true);setHint();
 }
 function mkPlane(){
   const al=pick(G.def.airlines);let num,k=0;do{num=100+Math.floor(Math.random()*800);k++;}while(G.used.has(al.c+num)&&k<50);G.used.add(al.c+num);
@@ -908,11 +1046,12 @@ document.getElementById('card').addEventListener('click',e=>{if(PAUSED){toast('P
 });
 
 /* ---------- input ---------- */
-function hitPlane(w){const r=Math.max(24,22/view.s);let best=null,bd=r;for(const p of G.planes){if(p.alpha<.5)continue;const d=D(p,w);if(d<bd){bd=d;best=p;}}return best;}
+let fingerPx=22;
+function hitPlane(w){const r=Math.max(24,fingerPx/view.s);let best=null,bd=r;for(const p of G.planes){if(p.alpha<.5)continue;const d=D(p,w);if(d<bd){bd=d;best=p;}}return best;}
 function segDist(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy),0,1);return Math.hypot(p.x-a.x-dx*t,p.y-a.y-dy*t);}
-function hitTarget(w){const r=Math.max(30,20/view.s);
+function hitTarget(w){const r=Math.max(30,(fingerPx-2)/view.s);
   let best=null,bd=r;for(const g of G.ap.gates){const d=D(w,g.P);if(d<bd){bd=d;best={kind:'gate',g};}}if(best)return best;
-  for(const rw of G.ap.runways){if(segDist(w,rw.A,rw.B)<Math.max(26,18/view.s)||D(w,G.ap.nodes[rw.H])<r)return{kind:'runway',rw};}
+  for(const rw of G.ap.runways){if(segDist(w,rw.A,rw.B)<Math.max(26,(fingerPx-4)/view.s)||D(w,G.ap.nodes[rw.H])<r)return{kind:'runway',rw};}
   return null;}
 function selectPlane(p){Snd.chime(0);G.sel=p;G.preview=null;G.hoverKey=null;setHint();updateCard(true);}
 function execTarget(p,t){
@@ -935,11 +1074,58 @@ function onTap(sx,sy){
   if(G.sel&&!plane){G.sel=null;G.preview=null;setHint();updateCard();}
 }
 let hoverPt=null;
-cv.addEventListener('pointerdown',e=>{onTap(e.clientX,e.clientY);});
-cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')hoverPt={x:e.clientX,y:e.clientY};});
-cv.addEventListener('pointerleave',()=>{hoverPt=null;});
+const ptrs=new Map();let gest=null;
+const SLOP={touch:10,pen:8,mouse:5};
+function onSomething(sx,sy){if(!G||G.attract)return false;const w=view.toWorld(sx,sy);if(hitPlane(w))return true;
+  if(G.sel){const t=hitTarget(w);if(t&&isValid(G.sel,t))return true;}return false;}
+function startPinch(){const [a,b]=[...ptrs.values()];
+  gest={mode:'pinch',d0:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),m0:{x:(a.x+b.x)/2,y:(a.y+b.y)/2},z0:CAM.z,tx0:CAM.tx,ty0:CAM.ty};}
+function startPan(id,p){gest={mode:'pan',id,sx:p.x,sy:p.y,tx0:CAM.tx,ty0:CAM.ty};}
+cv.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  e.preventDefault();fingerPx=e.pointerType==='mouse'?22:30;
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});CAM.goal=null;
+  if(ptrs.size===1)gest={mode:'tap',id:e.pointerId,type:e.pointerType,sx:e.clientX,sy:e.clientY,tx0:CAM.tx,ty0:CAM.ty,canPan:!onSomething(e.clientX,e.clientY)};
+  else if(ptrs.size===2)startPinch();
+  else gest={mode:'none'};
+});
+cv.addEventListener('pointermove',e=>{
+  if(e.pointerType==='mouse')hoverPt={x:e.clientX,y:e.clientY};
+  const p=ptrs.get(e.pointerId);if(!p)return;p.x=e.clientX;p.y=e.clientY;if(!gest)return;
+  if(gest.mode==='tap'&&e.pointerId===gest.id){
+    if(Math.hypot(p.x-gest.sx,p.y-gest.sy)>(SLOP[gest.type]||10))gest.mode=gest.canPan?'pan':'none';}
+  if(gest.mode==='pan'&&e.pointerId===gest.id){CAM.tx=gest.tx0+(p.x-gest.sx);CAM.ty=gest.ty0+(p.y-gest.sy);applyCam();
+    if(e.pointerType==='mouse')cv.style.cursor='grabbing';}
+  else if(gest.mode==='pinch'&&ptrs.size>=2){const [a,b]=[...ptrs.values()];
+    const d=Math.hypot(a.x-b.x,a.y-b.y),m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    const nz=clamp(gest.z0*d/gest.d0,CAM.min,CAM.max);
+    // keep the map point that was under the fingers' midpoint under the midpoint (zoom centred on the pinch)
+    const bx=(gest.m0.x-gest.tx0)/gest.z0,by=(gest.m0.y-gest.ty0)/gest.z0;
+    CAM.z=nz;CAM.tx=m.x-bx*nz;CAM.ty=m.y-by*nz;applyCam();}
+});
+function endPtr(e,cancel){
+  if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);
+  const g=gest;
+  if(g&&g.mode==='tap'&&e.pointerId===g.id&&!cancel&&ptrs.size===0){gest=null;onTap(g.sx,g.sy);return;}
+  if(g&&g.mode==='pinch'&&ptrs.size===1){const [id,p]=[...ptrs.entries()][0];startPan(id,p);return;} // lift one finger: keep panning with the other
+  if(ptrs.size===0){gest=null;if(e.pointerType==='mouse')cv.style.cursor='default';}
+}
+cv.addEventListener('pointerup',e=>endPtr(e,false));
+cv.addEventListener('pointercancel',e=>endPtr(e,true));
+cv.addEventListener('lostpointercapture',e=>endPtr(e,true));
+cv.addEventListener('pointerleave',e=>{hoverPt=null;});
+cv.addEventListener('wheel',e=>{if(!G||G.attract)return;e.preventDefault();
+  const dy=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?400:1),k=e.ctrlKey?0.012:0.0016; // ctrlKey = trackpad pinch
+  zoomAt(CAM.z*Math.exp(-clamp(dy,-120,120)*k),e.clientX,e.clientY);},{passive:false});
+cv.addEventListener('dblclick',e=>e.preventDefault());
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+// iOS Safari: stop the page itself from pinch-zooming / double-tap zooming over the game
+['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1||!e.target.closest('#start,#card,#log'))e.preventDefault();},{passive:false});
 function updateHover(){
-  if(!G||G.attract||!hoverPt){if(G){G.hover=null;G.hoverPlane=null;}cv.style.cursor='default';return;}
+  if(gest&&gest.mode==='pan')return;
+  if(!G||G.attract||!hoverPt){if(G){G.hover=null;G.hoverPlane=null;}if(!gest)cv.style.cursor='default';return;}
   const w=view.toWorld(hoverPt.x,hoverPt.y);G.hoverPlane=hitPlane(w);
   const t=G.sel?hitTarget(w):null;const key=t?(t.kind==='gate'?'g'+G.ap.gates.indexOf(t.g):'r'+t.rw.id)+'|'+G.sel.state:null;
   if(key!==G.hoverKey){G.hoverKey=key;G.hover=t;G.preview=t&&G.sel?previewPts(G.sel,t):null;}
@@ -962,7 +1148,7 @@ function updateScore(silent){
   if(s.land!==lastScore.land||s.dep!==lastScore.dep)bump('sTot',s.land+s.dep);lastScore={land:s.land,dep:s.dep};
 }
 function applyTheme(){document.documentElement.style.setProperty('--accent',G.def.theme.accent);$('apTitle').textContent=G.def.name;document.body.style.background=G.def.theme.ground;}
-function showHUD(on){if(!on&&G){G.sel=null;}updateCard&&setTimeout(()=>updateCard(),0);for(const id of ['hud','hint','footer','log'])$(id).classList.toggle('hidden',!on);$('startNight').classList.toggle('hidden',on);if(!on){Radio.reset();Snd.hum(0);}}
+function showHUD(on){if(!on&&G){G.sel=null;}updateCard&&setTimeout(()=>updateCard(),0);for(const id of ['hud','hint','footer','log','zoom'])$(id).classList.toggle('hidden',!on);$('startNight').classList.toggle('hidden',on);if(!on){Radio.reset();Snd.hum(0);}}
 function syncToggles(){$('btnSound').classList.toggle('off',!S.sound);$('btnVoice').classList.toggle('off',!S.voice);document.body.classList.toggle('night',S.night);
   $('btnSound').setAttribute('aria-pressed',S.sound);$('btnVoice').setAttribute('aria-pressed',S.voice);
   for(const id of ['btnNight','startNight'])$(id).title=S.night?'Switch to day':'Switch to night';}
@@ -978,11 +1164,15 @@ function setPaused(on,why){on=!!on;if(on&&!gameActive())on=false;if(on===PAUSED)
   Snd.pause(on);if(on)Radio.pause();else Radio.resume();
   if(on&&why)toast(why);}
 $('btnPause').addEventListener('click',()=>setPaused(!PAUSED));
+$('zIn').addEventListener('click',()=>zoomBy(1.5));$('zOut').addEventListener('click',()=>zoomBy(1/1.5));$('zFit').addEventListener('click',zoomFit);
 $('btnResume').addEventListener('click',()=>setPaused(false));
 window.addEventListener('keydown',e=>{if(e.repeat||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
-  if(k===' '||k==='p'||k==='P'){if(!gameActive())return;const tg=e.target;e.preventDefault();if(tg&&tg.blur)tg.blur();setPaused(!PAUSED);}});
+  if(k===' '||k==='p'||k==='P'){if(!gameActive())return;const tg=e.target;e.preventDefault();if(tg&&tg.blur)tg.blur();setPaused(!PAUSED);}
+  else if(gameActive()&&(k==='+'||k==='=')){zoomBy(1.5);}else if(gameActive()&&(k==='-'||k==='_')){zoomBy(1/1.5);}else if(gameActive()&&k==='0'){zoomFit();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameActive())setPaused(true,'Paused while you were away');});
-function startAirport(def){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();fade(()=>{setPaused(false);newGame(def,false);$('start').classList.add('hidden');showHUD(true);});}
+let zoomTipShown=false;
+function startAirport(def){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();fade(()=>{setPaused(false);newGame(def,false);$('start').classList.add('hidden');showHUD(true);requestAnimationFrame(()=>resize());
+  if(!zoomTipShown){zoomTipShown=true;setTimeout(()=>{if(gameActive())toast(matchMedia('(pointer:coarse)').matches?'Pinch to zoom · drag to look around':'Scroll or use + / − to zoom · drag to look around');},900);}});}
 $('btnRestart').addEventListener('click',()=>fade(()=>{setPaused(false);newGame(G.def,false);toast('A fresh, calm start at '+G.def.name);}));
 $('btnMenu').addEventListener('click',()=>fade(()=>{setPaused(false);showHUD(false);$('start').classList.remove('hidden');newGame(G.def,true);}));
 
@@ -1041,6 +1231,7 @@ let last=performance.now(),vnow=last;
 function frame(now){
   const rdt=Math.min(0.05,(now-last)/1000);let dt=PAUSED?0:rdt*speedMul;last=now;if(!PAUSED)vnow+=rdt*1000;
   nightT+=clamp((S.night?1:0)-nightT,-rdt/1.1,rdt/1.1);
+  stepCam(rdt);if(camDirty&&G){camDirty=false;renderStatic(sctx,G.ap,view,dpr);renderLights(lctx,G.ap,view,dpr);}
   if(G){while(dt>0){const h=Math.min(dt,0.05);update(h);dt-=h;}updateHover();if(now-cardT>200){cardT=now;updateCard();}render(vnow);}
   requestAnimationFrame(frame);
 }
@@ -1064,7 +1255,9 @@ function buildCards(){
     wrap.appendChild(card);
   });
 }
-window.addEventListener('resize',resize);
+let rzQ=0;const queueResize=()=>{cancelAnimationFrame(rzQ);rzQ=requestAnimationFrame(resize);};
+window.addEventListener('resize',queueResize);window.addEventListener('orientationchange',()=>setTimeout(resize,250));
+if(window.visualViewport)visualViewport.addEventListener('resize',queueResize);
 syncToggles();resize();buildCards();renderThumbs();newGame(AIRPORTS[0],true);requestAnimationFrame(frame);
 
 /* ---------- small debug hook (used for automated testing) ---------- */
@@ -1088,7 +1281,10 @@ window.calmSkies={
   radioAll(){return Radio.log.concat(Radio.q.map(m=>m.text));},
   setNight(on){if(!!on!==S.night)toggleNight();nightT=on?1:0;},
   pause(on){setPaused(on);return PAUSED;},isPaused(){return PAUSED;},
-  audioState(){return{ctx:!!Snd.ctx,state:Snd.ctx&&Snd.ctx.state,speech:speechOK};}
+  audioState(){return{ctx:!!Snd.ctx,state:Snd.ctx&&Snd.ctx.state,speech:speechOK,unlocked:audioUnlocked,speechUnlocked};},
+  cam(){return{z:CAM.z,tx:CAM.tx,ty:CAM.ty,s:view.s,baseS:baseView.s,rect:baseView.rect};},
+  zoomAt(z,x,y){zoomAt(z,x,y);return CAM.z;},resetCam(){resetCam();},
+  renderMs(){const t=performance.now();for(let i=0;i<10;i++){renderStatic(sctx,G.ap,view,dpr);renderLights(lctx,G.ap,view,dpr);}return (performance.now()-t)/10;}
 };
 })();
 </script>
